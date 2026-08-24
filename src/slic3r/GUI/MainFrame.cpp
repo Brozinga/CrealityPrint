@@ -3654,7 +3654,7 @@ void MainFrame::init_menubar_as_editor()
             this);
         //calibMenu->AppendSubMenu(speed_menu, _L("Speed calib"));
         append_submenu(
-            calibMenu, speed_menu, wxID_ANY, _L("Speed calib"), _L("Speed calib"), "",
+            calibMenu, speed_menu, wxID_ANY, _L("Speed"), _L("Speed"), "",
             [this]() {
                 return m_plater->is_view3D_shown() && m_tabpanel->GetSelection() == TabPosition::tp3DEditor;
                 ;
@@ -3703,7 +3703,7 @@ void MainFrame::init_menubar_as_editor()
             this);
         //calibMenu->AppendSubMenu(acc_menu, _L("Acceleration calib"));
         append_submenu(
-            calibMenu, acc_menu, wxID_ANY, _L("Acceleration calib"), _L("Acceleration calib"), "",
+            calibMenu, acc_menu, wxID_ANY, _L("Acceleration"), _L("Acceleration"), "",
             [this]() {
                 return m_plater->is_view3D_shown() && m_tabpanel->GetSelection() == TabPosition::tp3DEditor;
                 ;
