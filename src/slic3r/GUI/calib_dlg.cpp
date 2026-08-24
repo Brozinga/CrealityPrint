@@ -41,7 +41,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 {
     iExtruderTypeSeletion = 0;
     imethod               = 0;
-    SetMaxSize(wxSize(FromDIP(612), FromDIP(320)));
+    SetMaxSize(wxSize(FromDIP(612), -1));
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
@@ -402,7 +402,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(wxColour("#FFFFFF"));
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(320)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
     wxBoxSizer* choice_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -626,7 +626,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(230)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -803,7 +803,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(230)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -976,7 +976,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(230)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
     // Settings
@@ -1155,7 +1155,7 @@ Retraction_Speed_Dlg::Retraction_Speed_Dlg(wxWindow* parent, wxWindowID id, Plat
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(240)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -1334,7 +1334,7 @@ Limit_Speed_Dlg::Limit_Speed_Dlg(wxWindow* parent, wxWindowID id, Plater* plater
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(260)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -1524,7 +1524,7 @@ Speed_Tower_Dlg::Speed_Tower_Dlg(wxWindow* parent, wxWindowID id, Plater* plater
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(230)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -1713,7 +1713,7 @@ Jitter_Speed_Dlg::Jitter_Speed_Dlg(wxWindow* parent, wxWindowID id, Plater* plat
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(230)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -1903,7 +1903,7 @@ Fan_Speed_Dlg::Fan_Speed_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(230)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -2095,7 +2095,7 @@ Limit_Acceleration_Dlg::Limit_Acceleration_Dlg(wxWindow* parent, wxWindowID id, 
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(260)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -2287,7 +2287,7 @@ Acceleration_Tower_Dlg::Acceleration_Tower_Dlg(wxWindow* parent, wxWindowID id, 
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(260)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -2484,7 +2484,7 @@ Dec_Acceleration_Dlg::Dec_Acceleration_Dlg(wxWindow* parent, wxWindowID id, Plat
 {
     SetFont(wxGetApp().normal_font());
     SetBackgroundColour(*wxWHITE);
-    SetMaxSize(wxSize(FromDIP(600), FromDIP(260)));
+    SetMaxSize(wxSize(FromDIP(600), -1));
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
