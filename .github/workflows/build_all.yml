@@ -1,39 +1,9 @@
 name: Build all
 
 on:
-  push:
-    branches:
-     - main
-     - master
-     - release/*
-     - windows
-    paths:
-     - 'deps/**'
-     - 'src/**'
-     - '**/CMakeLists.txt'
-     - 'version.inc'
-     - 'localization/**'
-     - 'resources/**'
-     - ".github/workflows/*.yml"
-     - 'flatpak/**'
-
-  pull_request:
-    branches:
-     - main
-     - master
-     - release/*
-     - windows
-    paths:
-     - 'deps/**'
-     - 'src/**'
-     - '**/CMakeLists.txt'
-     - 'version.inc'
-     - ".github/workflows/*.yml"
-     - 'BuildLinux.sh'
-     - 'build_release_vs2022.bat'
-     - 'build_release_macos.sh'
-     - 'flatpak/**'
-
+  # push/pull_request triggers disabled: builds are being generated/tested
+  # manually (local Docker build for Linux) for now. Re-enable by restoring
+  # the push/pull_request blocks below when CI should run automatically again.
   workflow_dispatch: # allows for manual dispatch
     inputs:
       build-deps-only:
