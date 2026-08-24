@@ -3716,7 +3716,14 @@ void BaseRenderer::render_legend(int canvas_width, int canvas_height)
                         if (toggled) {
                             bool k = !is_lite_mode;
                             wxGetApp().app_config->set("gcode_preview_lite_mode", (k ? "true" : "false"));
-                            wxGetApp().plater()->invalid_slice_result_need_reslice();
+                            // invalid_slice_result_need_reslice() resets the gcode viewer's
+                            // GL buffers and triggers a full Plater::update()/relayout. We're
+                            // currently inside this same renderer's render_legend(), still
+                            // mid-frame - tearing down GL state and resizing/relaying out the
+                            // canvas here (before this frame's glXSwapBuffers) leaves the GLX
+                            // drawable/context out of sync and crashes the app with an X11
+                            // BadMatch error. Defer it to run after the current frame finishes.
+                            wxGetApp().CallAfter([]() { wxGetApp().plater()->invalid_slice_result_need_reslice(); });
                         }
 
                         ImGui::PopStyleColor();
