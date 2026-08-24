@@ -88,9 +88,14 @@ RUN locale-gen $LC_ALL
 # the CA cert path on every startup
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
-COPY ./ CrealityPrint
-
 WORKDIR CrealityPrint
+
+# Copy only what -u/-d need first, so editing src/ (the vast majority of
+# commits) doesn't invalidate the deps build cache below - deps compile
+# from scratch takes far longer than the main build.
+COPY BuildLinux.sh version.inc ./
+COPY linux.d/ ./linux.d/
+COPY deps/ ./deps/
 
 # These can run together, but we run them seperate for podman caching
 # Update System dependencies
@@ -98,6 +103,10 @@ RUN ./BuildLinux.sh -u
 
 # Build dependencies in ./deps
 RUN ./BuildLinux.sh -d
+
+# Now bring in the rest of the source tree for the main build/AppImage
+# steps below.
+COPY ./ ./
 
 # gcc-13's own linker-time libstdc++.so (from libstdc++-13-dev) only
 # exports up to CXXABI_1.3.14, but Ubuntu 26.04's system libraries (e.g.

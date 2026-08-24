@@ -65,3 +65,48 @@ jobs:
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
   
+
+  build_linux:
+    name: Build Linux (Docker/AppImage)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" 2>/dev/null || true
+          df -h /
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: 'true'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build CrealityPrint image (same Dockerfile/Ubuntu 26.04 used locally)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: crealityprint:ci
+          build-args: |
+            NCORES=2
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract AppImage from image
+        run: |
+          id=$(docker create crealityprint:ci)
+          mkdir -p out
+          docker cp "$id":/CrealityPrint/build/. out/ || (docker logs "$id"; false)
+          docker rm -f "$id"
+          ls -la out/*.AppImage
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrealityPrint-linux-x86_64-AppImage
+          path: out/*.AppImage
+  
