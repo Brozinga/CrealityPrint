@@ -96,6 +96,10 @@ WORKDIR CrealityPrint
 COPY BuildLinux.sh version.inc ./
 COPY linux.d/ ./linux.d/
 COPY deps/ ./deps/
+# deps/CMakeLists.txt and several deps/*/*.cmake files
+# (include(${CMAKE_SOURCE_DIR}/../cmake/modules/CheckUos.cmake)) reach
+# outside deps/ into the repo-root cmake/ dir - needed at -d time too.
+COPY cmake/ ./cmake/
 
 # These can run together, but we run them seperate for podman caching
 # Update System dependencies
