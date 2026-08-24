@@ -44,13 +44,6 @@
 #include "slic3r/GUI/CreatePresetsDialog.hpp"
 #include "slic3r/GUI/CalibrationWizardCaliPage.hpp"
 
-// A workaround for a set of issues related to text fitting into gtk widgets:
-#if defined(__WXGTK20__) || defined(__WXGTK3__)
-    #include <glib-2.0/glib-object.h>
-    #include <pango-1.0/pango/pango-layout.h>
-    #include <gtk/gtk.h>
-#endif
-
 using Slic3r::GUI::format_wxstr;
 
 namespace Slic3r {
@@ -213,24 +206,6 @@ void PresetComboBox::update_selection()
     SetToolTip(NULL);
 #endif
     SetToolTip(GetString(m_last_selected));
-
-// A workaround for a set of issues related to text fitting into gtk widgets:
-#if defined(__WXGTK20__) || defined(__WXGTK3__)
-    GList* cells = gtk_cell_layout_get_cells(GTK_CELL_LAYOUT(m_widget));
-
-    // 'cells' contains the GtkCellRendererPixBuf for the icon,
-    // 'cells->next' contains GtkCellRendererText for the text we need to ellipsize
-    if (!cells || !cells->next) return;
-
-    auto cell = static_cast<GtkCellRendererText *>(cells->next->data);
-
-    if (!cell) return;
-
-    g_object_set(G_OBJECT(cell), "ellipsize", PANGO_ELLIPSIZE_END, (char*)NULL);
-
-    // Only the list of cells must be freed, the renderer isn't ours to free
-    g_list_free(cells);
-#endif
 }
 
 int PresetComboBox::update_ams_color()
