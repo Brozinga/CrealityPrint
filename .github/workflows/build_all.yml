@@ -65,6 +65,8 @@ jobs:
 
   build_linux:
     name: Build Linux (Docker/AppImage)
+    needs: [build_all]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -91,7 +93,7 @@ jobs:
           build-args: |
             NCORES=2
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
       - name: Extract AppImage from image
         run: |
