@@ -53,10 +53,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Deprecate appimage
           - os: windows-latest
-          # - os: ubuntu-22.04
-          # - os: ubuntu-24.04
+          - os: macos-14
             arch: arm64
     uses: ./.github/workflows/build_check_cache.yml
     with:
@@ -64,7 +62,6 @@ jobs:
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
-  
 
   build_linux:
     name: Build Linux (Docker/AppImage)

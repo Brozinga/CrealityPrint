@@ -31,11 +31,13 @@ jobs:
         id: set_outputs
         env:
           # todo: this is mad! refactor other build scripts to use same name
-          dep-folder-name: ${{ inputs.os == 'windows-latest' && '/OrcaSlicer_dep' || inputs.os == 'macos-14' && '' || inputs.os != 'macos-14' && '/destdir' || '' }}
+          # macOS (build_release_macos.sh) writes deps to deps/build_<arch>,
+          # not deps/build/<something> like Windows/Linux.
+          dep-path: ${{ inputs.os == 'windows-latest' && '/build/OrcaSlicer_dep' || inputs.os == 'macos-14' && format('/build_{0}', inputs.arch) || '/build/destdir' }}
           output-cmd: ${{ inputs.os == 'windows-latest' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
           echo cache-key=${{ inputs.os }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
-          echo cache-path=${{ github.workspace }}/deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
+          echo cache-path=${{ github.workspace }}/deps${{ env.dep-path }} >> ${{ env.output-cmd }}
             
       - name: load cache
         id: cache_deps
