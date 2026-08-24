@@ -27,8 +27,14 @@ cp /lib/x86_64-linux-gnu/libz.so.* usr/lib/
 cp /lib/x86_64-linux-gnu/liblzma.so.* usr/lib/
 cp /lib/x86_64-linux-gnu/libx264.so.* usr/lib/
 cp /usr/lib/x86_64-linux-gnu/libGLU.so.* usr/lib/
-cp /usr/lib/x86_64-linux-gnu/libOpenGL.so.* usr/lib/
-cp /usr/lib/x86_64-linux-gnu/libGLdispatch.so.* usr/lib/
+# libOpenGL.so / libGLdispatch.so (libglvnd's vendor-dispatch libraries)
+# are deliberately NOT bundled: they must match the target machine's own
+# GPU driver installation to correctly dispatch GL calls to the real
+# vendor ICD. Bundling the build container's copy and prioritizing it via
+# AppRun's LD_LIBRARY_PATH breaks GL context creation on the user's
+# system (crashes inside gdk_gl_context_make_current/libepoxy when
+# WebKitGTK creates its GL-accelerated WebView) even though the host has
+# a perfectly working GPU/driver — always rely on the host's own glvnd.
 cp /usr/lib/x86_64-linux-gnu/libexpat.so.* usr/lib/
 cp /usr/lib/x86_64-linux-gnu/libLerc.so.* usr/lib/
 cp /usr/lib/x86_64-linux-gnu/libmspack.so.* usr/lib/
