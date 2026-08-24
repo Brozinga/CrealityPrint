@@ -36,6 +36,26 @@ wxBoxSizer* create_item_checkbox(wxString title, wxWindow* parent, bool* value, 
     return m_sizer_checkbox;
 }
 
+// Several calibration dialogs' widgets don't reliably report their real
+// best size until the dialog has fully round-tripped through the window
+// manager. That round trip can take more than a single idle-loop
+// iteration, so deferring Layout()/Fit() with a single CallAfter() isn't
+// always enough - it can still land before the real size is known,
+// leaving the OK/Start button clipped until the dialog is closed and
+// reopened. Re-run Layout()/Fit() over a handful of idle iterations
+// instead of just once, so at least one of them lands after the real
+// size is available. This is cheap and idempotent when called again on
+// an already-correctly-sized dialog.
+static void schedule_calib_dlg_refit(wxWindow* dlg, int remaining_attempts = 5)
+{
+    dlg->CallAfter([dlg, remaining_attempts]() {
+        dlg->Layout();
+        dlg->Fit();
+        if (remaining_attempts > 1)
+            schedule_calib_dlg_refit(dlg, remaining_attempts - 1);
+    });
+}
+
 PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     : DPIDialog(parent, id, _L("PA Calibration"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
@@ -383,17 +403,8 @@ void PA_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 void PA_Calibration_Dlg::on_show(wxShowEvent& event) {
     PA_Calibration_Dlg::reset_params();
     if (event.IsShown()) {
-        // wxStaticBox/wxRadioButton native GTK best-size is only reliably
-        // known once the dialog has fully round-tripped through the
-        // window manager, which isn't guaranteed yet even by the time
-        // wxEVT_SHOW fires (seen on the very first dialog shown in a
-        // session: still undersized then, correct on the next Show()).
-        // Defer to CallAfter so this runs once the event loop actually
-        // settles, instead of relying on wxEVT_SHOW's exact timing.
-        CallAfter([this] {
-            Layout();
-            Fit();
-        });
+        // See schedule_calib_dlg_refit().
+        schedule_calib_dlg_refit(this);
     }
 }
 
@@ -633,17 +644,8 @@ void Temp_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 
 void Temp_Calibration_Dlg::on_show(wxShowEvent& event) {
     if (event.IsShown()) {
-        // wxRadioBox's native GTK best-size is only reliably known once
-        // the dialog has fully round-tripped through the window manager,
-        // which isn't guaranteed yet even by the time wxEVT_SHOW fires
-        // (seen on the very first dialog shown in a session: still
-        // undersized then, correct on the next Show()). Defer to
-        // CallAfter so this runs once the event loop actually settles,
-        // instead of relying on wxEVT_SHOW's exact timing.
-        CallAfter([this] {
-            Layout();
-            Fit();
-        });
+        // See schedule_calib_dlg_refit().
+        schedule_calib_dlg_refit(this);
     }
     event.Skip();
 }
@@ -824,11 +826,8 @@ void MaxVolumetricSpeed_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 void MaxVolumetricSpeed_Test_Dlg::on_show(wxShowEvent& event){
     update_params();
     if (event.IsShown()) {
-        // See PA_Calibration_Dlg::on_show.
-        CallAfter([this] {
-            Layout();
-            Fit();
-        });
+        // See schedule_calib_dlg_refit().
+        schedule_calib_dlg_refit(this);
     }
 }
 
@@ -938,14 +937,8 @@ VFA_Test_Dlg::~VFA_Test_Dlg()
 void VFA_Test_Dlg::on_show(wxShowEvent& event) {
     update_params();
     if (event.IsShown()) {
-        // See PA_Calibration_Dlg::on_show: the dialog's best size isn't
-        // reliably known until it has fully round-tripped through the
-        // window manager, which can still be too early even by the time
-        // wxEVT_SHOW fires on the very first show of a session.
-        CallAfter([this] {
-            Layout();
-            Fit();
-        });
+        // See schedule_calib_dlg_refit().
+        schedule_calib_dlg_refit(this);
     }
 }
 
@@ -1190,11 +1183,8 @@ void Retraction_Test_Dlg::on_show(wxShowEvent& event)
 {
     update_params();
     if (event.IsShown()) {
-        // See PA_Calibration_Dlg::on_show.
-        CallAfter([this] {
-            Layout();
-            Fit();
-        });
+        // See schedule_calib_dlg_refit().
+        schedule_calib_dlg_refit(this);
     }
 }
 
@@ -1303,11 +1293,8 @@ Retraction_Speed_Dlg::Retraction_Speed_Dlg(wxWindow* parent, wxWindowID id, Plat
 void Retraction_Speed_Dlg::on_show(wxShowEvent& event) {
     update_params();
     if (event.IsShown()) {
-        // See PA_Calibration_Dlg::on_show.
-        CallAfter([this] {
-            Layout();
-            Fit();
-        });
+        // See schedule_calib_dlg_refit().
+        schedule_calib_dlg_refit(this);
     }
 }
 
@@ -1507,11 +1494,8 @@ Limit_Speed_Dlg::~Limit_Speed_Dlg()
 void Limit_Speed_Dlg::on_show(wxShowEvent& event) {
     update_params();
     if (event.IsShown()) {
-        // See PA_Calibration_Dlg::on_show.
-        CallAfter([this] {
-            Layout();
-            Fit();
-        });
+        // See schedule_calib_dlg_refit().
+        schedule_calib_dlg_refit(this);
     }
 }
 
@@ -1705,11 +1689,8 @@ Speed_Tower_Dlg::~Speed_Tower_Dlg()
 	void Speed_Tower_Dlg::on_show(wxShowEvent& event) {
         update_params();
         if (event.IsShown()) {
-            // See PA_Calibration_Dlg::on_show.
-            CallAfter([this] {
-                Layout();
-                Fit();
-            });
+            // See schedule_calib_dlg_refit().
+            schedule_calib_dlg_refit(this);
         }
     }
 
@@ -1903,11 +1884,8 @@ Jitter_Speed_Dlg::~Jitter_Speed_Dlg()
 	void Jitter_Speed_Dlg::on_show(wxShowEvent& event) {
         update_params();
         if (event.IsShown()) {
-            // See PA_Calibration_Dlg::on_show.
-            CallAfter([this] {
-                Layout();
-                Fit();
-            });
+            // See schedule_calib_dlg_refit().
+            schedule_calib_dlg_refit(this);
         }
     }
 
@@ -2102,11 +2080,8 @@ Fan_Speed_Dlg::~Fan_Speed_Dlg()
 	void Fan_Speed_Dlg::on_show(wxShowEvent& event) {
         update_params();
         if (event.IsShown()) {
-            // See PA_Calibration_Dlg::on_show.
-            CallAfter([this] {
-                Layout();
-                Fit();
-            });
+            // See schedule_calib_dlg_refit().
+            schedule_calib_dlg_refit(this);
         }
     }
 
@@ -2305,11 +2280,8 @@ Limit_Acceleration_Dlg::~Limit_Acceleration_Dlg()
 void Limit_Acceleration_Dlg::on_show(wxShowEvent& event) {
     update_params();
     if (event.IsShown()) {
-        // See PA_Calibration_Dlg::on_show.
-        CallAfter([this] {
-            Layout();
-            Fit();
-        });
+        // See schedule_calib_dlg_refit().
+        schedule_calib_dlg_refit(this);
     }
 }
 
@@ -2505,11 +2477,8 @@ Acceleration_Tower_Dlg::~Acceleration_Tower_Dlg()
 	void Acceleration_Tower_Dlg::on_show(wxShowEvent& event) {
         update_params();
         if (event.IsShown()) {
-            // See PA_Calibration_Dlg::on_show.
-            CallAfter([this] {
-                Layout();
-                Fit();
-            });
+            // See schedule_calib_dlg_refit().
+            schedule_calib_dlg_refit(this);
         }
     }
 
@@ -2711,11 +2680,8 @@ Dec_Acceleration_Dlg::~Dec_Acceleration_Dlg()
 	void Dec_Acceleration_Dlg::on_show(wxShowEvent& event) {
         update_params();
         if (event.IsShown()) {
-            // See PA_Calibration_Dlg::on_show.
-            CallAfter([this] {
-                Layout();
-                Fit();
-            });
+            // See schedule_calib_dlg_refit().
+            schedule_calib_dlg_refit(this);
         }
     }
 
