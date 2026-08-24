@@ -3586,18 +3586,18 @@ void MainFrame::init_menubar_as_editor()
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown()&& m_tabpanel->GetSelection() == TabPosition::tp3DEditor;; }, this);
 
+    append_menu_item(
+        calibMenu, wxID_ANY, _L("VFA"), _L("VFA"),
+        [this](wxCommandEvent&) {
+            if (!m_vfa_test_dlg)
+                m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            m_vfa_test_dlg->ShowModal();
+        },
+        "", nullptr,
+        [this]() {return m_plater->is_view3D_shown() && m_tabpanel->GetSelection() == TabPosition::tp3DEditor;; }, this);
+
     if (Slic3r::GUI::wxGetApp().isAlpha())
     {
-        append_menu_item(
-            calibMenu, wxID_ANY, _L("VFA"), _L("VFA"),
-            [this](wxCommandEvent&) {
-                if (!m_vfa_test_dlg)
-                    m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-                m_vfa_test_dlg->ShowModal();
-            },
-            "", nullptr,
-            [this]() {return m_plater->is_view3D_shown() && m_tabpanel->GetSelection() == TabPosition::tp3DEditor;; }, this);
-
         // creality add
         auto speed_menu = new wxMenu();
         append_menu_item(
