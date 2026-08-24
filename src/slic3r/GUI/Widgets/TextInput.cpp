@@ -6,6 +6,7 @@
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
 #include <boost/log/trivial.hpp>
+#include <algorithm>
 
 BEGIN_EVENT_TABLE(TextInput, wxPanel)
 
@@ -202,7 +203,7 @@ void TextInput::DoSetSize(int x, int y, int width, int height, int sizeFlags)
         textPos.x += labelSize.x;
     if (text_ctrl) {
         wxSize textSize = text_ctrl->GetSize();
-        textSize.x      = size.x - textPos.x - labelSize.x - m_LeftMargin * 2;
+        textSize.x      = std::max(0, size.x - textPos.x - labelSize.x - m_LeftMargin * 2);
         text_ctrl->SetSize(textSize);
         text_ctrl->SetPosition({textPos.x, (size.y - textSize.y) / 2});
     }
