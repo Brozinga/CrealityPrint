@@ -383,12 +383,17 @@ void PA_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 void PA_Calibration_Dlg::on_show(wxShowEvent& event) {
     PA_Calibration_Dlg::reset_params();
     if (event.IsShown()) {
-        // wxStaticBox/wxRadioButton native GTK best-size is only known once
-        // the dialog is actually realized/mapped, so the Fit() called from
-        // the constructor (before the first Show()) can undersize the
-        // window and clip the OK button. Redo it now that we're on screen.
-        Layout();
-        Fit();
+        // wxStaticBox/wxRadioButton native GTK best-size is only reliably
+        // known once the dialog has fully round-tripped through the
+        // window manager, which isn't guaranteed yet even by the time
+        // wxEVT_SHOW fires (seen on the very first dialog shown in a
+        // session: still undersized then, correct on the next Show()).
+        // Defer to CallAfter so this runs once the event loop actually
+        // settles, instead of relying on wxEVT_SHOW's exact timing.
+        CallAfter([this] {
+            Layout();
+            Fit();
+        });
     }
 }
 
@@ -628,12 +633,17 @@ void Temp_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 
 void Temp_Calibration_Dlg::on_show(wxShowEvent& event) {
     if (event.IsShown()) {
-        // wxRadioBox's native GTK best-size is only known once the dialog
-        // is actually realized/mapped, so the Fit() called from the
-        // constructor (before the first Show()) can undersize the window
-        // and clip the OK button. Redo it now that we're on screen.
-        Layout();
-        Fit();
+        // wxRadioBox's native GTK best-size is only reliably known once
+        // the dialog has fully round-tripped through the window manager,
+        // which isn't guaranteed yet even by the time wxEVT_SHOW fires
+        // (seen on the very first dialog shown in a session: still
+        // undersized then, correct on the next Show()). Defer to
+        // CallAfter so this runs once the event loop actually settles,
+        // instead of relying on wxEVT_SHOW's exact timing.
+        CallAfter([this] {
+            Layout();
+            Fit();
+        });
     }
     event.Skip();
 }
