@@ -14,6 +14,15 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "loongarch")
     # Non-UOS LoongArch: apply UOS patch and LoongArch atomic fix as well
     set(_patch_command git init && ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/uos-patch.patch && ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/0001-TBB-LoongArch.patch)
     message(STATUS "Applying LoongArch TBB patches (uos-patch + atomic fix)")
+elseif (UNIX AND NOT APPLE)
+    # Same LTO-disabling GNU.cmake used for FLATPAK: upstream oneTBB
+    # unconditionally builds with -flto in Release, which bakes a
+    # GCC-version-locked bytecode format into libtbb.a. That breaks any
+    # build setup that links the final binary with a different GCC major
+    # version than the one that compiled deps (e.g. distro package churn
+    # pinning an older GCC for old autotools deps while linking with the
+    # distro default). Reuse the existing patch generally on Linux.
+    set(_patch_command ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/GNU.cmake ./cmake/compilers/GNU.cmake)
 endif()
 
 orcaslicer_add_cmake_project(

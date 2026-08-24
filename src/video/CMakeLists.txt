@@ -44,6 +44,7 @@ if(FFMPEG_VERSION)
             FFmpeg::swresample
             FFmpeg::swscale
             FFmpeg::avfilter
+            bz2 # libavformat's matroska demuxer uses BZ2_bzDecompress when bzlib was detected at FFmpeg build time
         )
         if(NOT WIN32)
             find_library(SLIC3R_X264_LIBRARY
