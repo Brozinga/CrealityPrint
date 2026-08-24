@@ -821,8 +821,15 @@ void MaxVolumetricSpeed_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 }
 
 
-void MaxVolumetricSpeed_Test_Dlg::on_show(wxShowEvent& event){ 
-    update_params(); 
+void MaxVolumetricSpeed_Test_Dlg::on_show(wxShowEvent& event){
+    update_params();
+    if (event.IsShown()) {
+        // See PA_Calibration_Dlg::on_show.
+        CallAfter([this] {
+            Layout();
+            Fit();
+        });
+    }
 }
 
 // VFA_Test_Dlg
@@ -928,7 +935,19 @@ VFA_Test_Dlg::~VFA_Test_Dlg()
     m_btnStart->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(VFA_Test_Dlg::on_start), NULL, this);
 }
 
-void VFA_Test_Dlg::on_show(wxShowEvent& event) { update_params(); }
+void VFA_Test_Dlg::on_show(wxShowEvent& event) {
+    update_params();
+    if (event.IsShown()) {
+        // See PA_Calibration_Dlg::on_show: the dialog's best size isn't
+        // reliably known until it has fully round-tripped through the
+        // window manager, which can still be too early even by the time
+        // wxEVT_SHOW fires on the very first show of a session.
+        CallAfter([this] {
+            Layout();
+            Fit();
+        });
+    }
+}
 
 void VFA_Test_Dlg::update_params()
 {
@@ -1167,9 +1186,16 @@ void Retraction_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 }
 
 
-void Retraction_Test_Dlg::on_show(wxShowEvent& event) 
-{ 
+void Retraction_Test_Dlg::on_show(wxShowEvent& event)
+{
     update_params();
+    if (event.IsShown()) {
+        // See PA_Calibration_Dlg::on_show.
+        CallAfter([this] {
+            Layout();
+            Fit();
+        });
+    }
 }
 
 // Retraction_Speed_Dlg
@@ -1274,8 +1300,15 @@ Retraction_Speed_Dlg::Retraction_Speed_Dlg(wxWindow* parent, wxWindowID id, Plat
     Fit();
 }
 
-void Retraction_Speed_Dlg::on_show(wxShowEvent& event) { 
-    update_params(); 
+void Retraction_Speed_Dlg::on_show(wxShowEvent& event) {
+    update_params();
+    if (event.IsShown()) {
+        // See PA_Calibration_Dlg::on_show.
+        CallAfter([this] {
+            Layout();
+            Fit();
+        });
+    }
 }
 
 void Retraction_Speed_Dlg::update_params()
@@ -1471,7 +1504,16 @@ Limit_Speed_Dlg::~Limit_Speed_Dlg()
     m_btnStart->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(Limit_Speed_Dlg::on_start), NULL, this);
 }
 
-void Limit_Speed_Dlg::on_show(wxShowEvent& event) { update_params(); }
+void Limit_Speed_Dlg::on_show(wxShowEvent& event) {
+    update_params();
+    if (event.IsShown()) {
+        // See PA_Calibration_Dlg::on_show.
+        CallAfter([this] {
+            Layout();
+            Fit();
+        });
+    }
+}
 
 void Limit_Speed_Dlg::update_params()
     {
@@ -1660,7 +1702,16 @@ Speed_Tower_Dlg::~Speed_Tower_Dlg()
     m_btnStart->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(Speed_Tower_Dlg::on_start), NULL, this);
 }
 
-	void Speed_Tower_Dlg::on_show(wxShowEvent& event) { update_params(); }
+	void Speed_Tower_Dlg::on_show(wxShowEvent& event) {
+        update_params();
+        if (event.IsShown()) {
+            // See PA_Calibration_Dlg::on_show.
+            CallAfter([this] {
+                Layout();
+                Fit();
+            });
+        }
+    }
 
 void Speed_Tower_Dlg::update_params() {
     m_bedTempValue                    = 50;
@@ -1849,7 +1900,16 @@ Jitter_Speed_Dlg::~Jitter_Speed_Dlg()
     m_btnStart->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(Jitter_Speed_Dlg::on_start), NULL, this);
 }
 
-	void Jitter_Speed_Dlg::on_show(wxShowEvent& event) { update_params(); }
+	void Jitter_Speed_Dlg::on_show(wxShowEvent& event) {
+        update_params();
+        if (event.IsShown()) {
+            // See PA_Calibration_Dlg::on_show.
+            CallAfter([this] {
+                Layout();
+                Fit();
+            });
+        }
+    }
 
 void Jitter_Speed_Dlg::update_params()
     {
@@ -2039,7 +2099,16 @@ Fan_Speed_Dlg::~Fan_Speed_Dlg()
     m_btnStart->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(Fan_Speed_Dlg::on_start), NULL, this);
 }
 
-	void Fan_Speed_Dlg::on_show(wxShowEvent& event) { update_params(); }
+	void Fan_Speed_Dlg::on_show(wxShowEvent& event) {
+        update_params();
+        if (event.IsShown()) {
+            // See PA_Calibration_Dlg::on_show.
+            CallAfter([this] {
+                Layout();
+                Fit();
+            });
+        }
+    }
 
 void Fan_Speed_Dlg::update_params()
     {
@@ -2233,7 +2302,16 @@ Limit_Acceleration_Dlg::~Limit_Acceleration_Dlg()
 }
 
 
-void Limit_Acceleration_Dlg::on_show(wxShowEvent& event) { update_params(); }
+void Limit_Acceleration_Dlg::on_show(wxShowEvent& event) {
+    update_params();
+    if (event.IsShown()) {
+        // See PA_Calibration_Dlg::on_show.
+        CallAfter([this] {
+            Layout();
+            Fit();
+        });
+    }
+}
 
 void Limit_Acceleration_Dlg::update_params()
     {
@@ -2424,7 +2502,16 @@ Acceleration_Tower_Dlg::~Acceleration_Tower_Dlg()
 }
 
 
-	void Acceleration_Tower_Dlg::on_show(wxShowEvent& event) { update_params(); }
+	void Acceleration_Tower_Dlg::on_show(wxShowEvent& event) {
+        update_params();
+        if (event.IsShown()) {
+            // See PA_Calibration_Dlg::on_show.
+            CallAfter([this] {
+                Layout();
+                Fit();
+            });
+        }
+    }
 
 void Acceleration_Tower_Dlg::update_params()
     {
@@ -2621,7 +2708,16 @@ Dec_Acceleration_Dlg::~Dec_Acceleration_Dlg()
 }
 
 
-	void Dec_Acceleration_Dlg::on_show(wxShowEvent& event) { update_params(); }
+	void Dec_Acceleration_Dlg::on_show(wxShowEvent& event) {
+        update_params();
+        if (event.IsShown()) {
+            // See PA_Calibration_Dlg::on_show.
+            CallAfter([this] {
+                Layout();
+                Fit();
+            });
+        }
+    }
 
 void Dec_Acceleration_Dlg::update_params()
     {
