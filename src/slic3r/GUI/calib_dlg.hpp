@@ -71,6 +71,7 @@ public:
     Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater);
     ~Temp_Calibration_Dlg();
     void on_dpi_changed(const wxRect& suggested_rect) override;
+    void on_show(wxShowEvent& event);
 
 protected:
     virtual void on_start(wxCommandEvent& event);

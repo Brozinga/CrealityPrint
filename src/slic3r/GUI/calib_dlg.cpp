@@ -382,6 +382,14 @@ void PA_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 
 void PA_Calibration_Dlg::on_show(wxShowEvent& event) {
     PA_Calibration_Dlg::reset_params();
+    if (event.IsShown()) {
+        // wxStaticBox/wxRadioButton native GTK best-size is only known once
+        // the dialog is actually realized/mapped, so the Fit() called from
+        // the constructor (before the first Show()) can undersize the
+        // window and clip the OK button. Redo it now that we're on screen.
+        Layout();
+        Fit();
+    }
 }
 
 // Temp calib dlg
@@ -497,6 +505,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     m_rbFilamentType->Connect(wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler(Temp_Calibration_Dlg::on_filament_type_changed), NULL, this);
     m_btnStart->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(Temp_Calibration_Dlg::on_start), NULL, this);
+    this->Connect(wxEVT_SHOW, wxShowEventHandler(Temp_Calibration_Dlg::on_show));
 
     wxGetApp().UpdateDlgDarkUI(this);
 
@@ -615,6 +624,18 @@ void Temp_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     this->Refresh();
     Fit();
 
+}
+
+void Temp_Calibration_Dlg::on_show(wxShowEvent& event) {
+    if (event.IsShown()) {
+        // wxRadioBox's native GTK best-size is only known once the dialog
+        // is actually realized/mapped, so the Fit() called from the
+        // constructor (before the first Show()) can undersize the window
+        // and clip the OK button. Redo it now that we're on screen.
+        Layout();
+        Fit();
+    }
+    event.Skip();
 }
 
 
