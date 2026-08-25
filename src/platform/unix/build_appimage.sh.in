@@ -27,14 +27,24 @@ cp /lib/x86_64-linux-gnu/libz.so.* usr/lib/
 cp /lib/x86_64-linux-gnu/liblzma.so.* usr/lib/
 cp /lib/x86_64-linux-gnu/libx264.so.* usr/lib/
 cp /usr/lib/x86_64-linux-gnu/libGLU.so.* usr/lib/
-# libOpenGL.so / libGLdispatch.so (libglvnd's vendor-dispatch libraries)
-# are deliberately NOT bundled: they must match the target machine's own
-# GPU driver installation to correctly dispatch GL calls to the real
-# vendor ICD. Bundling the build container's copy and prioritizing it via
-# AppRun's LD_LIBRARY_PATH breaks GL context creation on the user's
-# system (crashes inside gdk_gl_context_make_current/libepoxy when
-# WebKitGTK creates its GL-accelerated WebView) even though the host has
-# a perfectly working GPU/driver — always rely on the host's own glvnd.
+# libOpenGL.so / libGLX.so / libGLdispatch.so (libglvnd's vendor-dispatch
+# libraries, pulled in transitively via wxWidgets' own CMake build) are
+# NOT bundled into usr/lib: when present on the target machine, its own
+# copies must be used so GL calls dispatch to the real, correctly
+# configured vendor ICD - prioritizing our build container's copies via
+# AppRun's LD_LIBRARY_PATH broke GL context creation on machines with a
+# working GPU/driver (crashes inside gdk_gl_context_make_current/libepoxy
+# when WebKitGTK creates its GL-accelerated WebView).
+# However, some target machines don't have libglvnd installed at all
+# (only the legacy libGL.so.1, no separate libOpenGL.so.0/libGLX.so.0),
+# and the app hard-fails to even launch without them. So we still bundle
+# them, but into a separate usr/lib-gl-fallback/ directory that AppRun
+# only adds to LD_LIBRARY_PATH when the host doesn't already provide
+# these libraries - see AppRun in BuildLinuxImage.sh.in.
+mkdir -p usr/lib-gl-fallback
+cp /usr/lib/x86_64-linux-gnu/libOpenGL.so.* usr/lib-gl-fallback/
+cp /usr/lib/x86_64-linux-gnu/libGLX.so.* usr/lib-gl-fallback/
+cp /usr/lib/x86_64-linux-gnu/libGLdispatch.so.* usr/lib-gl-fallback/
 cp /usr/lib/x86_64-linux-gnu/libexpat.so.* usr/lib/
 cp /usr/lib/x86_64-linux-gnu/libLerc.so.* usr/lib/
 cp /usr/lib/x86_64-linux-gnu/libmspack.so.* usr/lib/
