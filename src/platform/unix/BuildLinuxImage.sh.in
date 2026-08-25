@@ -40,6 +40,29 @@ cat << EOF >@SLIC3R_APP_CMD@
 DIR=\$(readlink -f "\$0" | xargs dirname)
 export LD_LIBRARY_PATH="\$DIR/bin:\$DIR/usr/lib"
 
+# libOpenGL.so.0 / libGLX.so.0 / libGLdispatch.so.0 (libglvnd's dispatch
+# libraries) are bundled separately in usr/lib-gl-fallback/, kept out of
+# the LD_LIBRARY_PATH above, so a host that already has any of them keeps
+# using its own (correctly driver-matched) copy. Only fall back to our
+# bundled copy of a given library - and only that one, per-library, via
+# a throwaway symlink dir, so we never shadow a host copy of a *different*
+# library that happens to already be present - when the host is missing
+# it entirely, which otherwise makes the app fail to even start with
+# "error while loading shared libraries: libOpenGL.so.0".
+GL_FALLBACK_DIR=""
+for lib in libOpenGL.so.0 libGLX.so.0 libGLdispatch.so.0; do
+    if [ -f "\$DIR/usr/lib-gl-fallback/\$lib" ] && ! ldconfig -p 2>/dev/null | grep -q "\$lib "; then
+        if [ -z "\$GL_FALLBACK_DIR" ]; then
+            GL_FALLBACK_DIR=\$(mktemp -d)
+            trap 'rm -rf "\$GL_FALLBACK_DIR"' EXIT
+        fi
+        ln -sf "\$DIR/usr/lib-gl-fallback/\$lib" "\$GL_FALLBACK_DIR/\$lib"
+    fi
+done
+if [ -n "\$GL_FALLBACK_DIR" ]; then
+    export LD_LIBRARY_PATH="\$LD_LIBRARY_PATH:\$GL_FALLBACK_DIR"
+fi
+
 # FIXME: CrealityPrint segfault workarounds
 # 1) CrealityPrint will segfault on systems where locale info is not as expected (i.e. Holo-ISO arch-based distro)
 export LC_ALL=C

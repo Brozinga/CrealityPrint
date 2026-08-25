@@ -3711,7 +3711,7 @@ void MainFrame::init_menubar_as_editor()
             this);
 
         append_menu_item(
-            calibMenu, wxID_ANY, _L("Arc fitting test"), _L("Arc fitting test"),
+            calibMenu, wxID_ANY, _L("Arc fitting"), _L("Arc fitting"),
             [this](wxCommandEvent&) {
                 if (m_plater)
                     m_plater->calib_Arc_lerance();
