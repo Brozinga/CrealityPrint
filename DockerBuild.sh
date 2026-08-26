@@ -3,7 +3,7 @@ PROJECT_ROOT=$(cd -P -- "$(dirname -- "$0")" && printf '%s\n' "$(pwd -P)")
 
 set -x
 
-# Cap resource usage so the build never exceeds ~90% CPU / 32GB RAM on the
+# Cap resource usage so the build never exceeds ~85% CPU / 32GB RAM on the
 # host. Two layers:
 #  - NCORES limits ninja/cmake parallelism (via CMAKE_BUILD_PARALLEL_LEVEL
 #    in the Dockerfile), which is what actually keeps peak RAM bounded.
@@ -11,7 +11,7 @@ set -x
 HOST_CORES=$(nproc)
 NCORES=${NCORES:-14}
 CPU_PERIOD=100000
-CPU_QUOTA=$(( HOST_CORES * CPU_PERIOD * 90 / 100 ))
+CPU_QUOTA=$(( HOST_CORES * CPU_PERIOD * 85 / 100 ))
 MEMORY_LIMIT=${MEMORY_LIMIT:-32g}
 
 # Wishlist hint:  For developers, creating a Docker Compose
