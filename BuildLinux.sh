@@ -193,6 +193,15 @@ then
     else
         BUILD_ARGS="${BUILD_ARGS} -DBBL_RELEASE_TO_PUBLIC=1 -DBBL_INTERNAL_TESTING=0 -DUPDATE_ONLINE_MACHINES=1"
     fi
+    # PROJECT_VERSION_EXTRA selects which Creality Cloud environment/OAuth
+    # client the app talks to (see cmake/BuildInfoUtil.cmake and
+    # src/slic3r/GUI/HttpServer.cpp). Left unset, cmake defaults it to
+    # "Alpha", which points at pre.crealitycloud.com (Creality's internal
+    # staging cloud) instead of production - that's why self-built AppImages
+    # can't log in to Creality Cloud or send prints to printers the way the
+    # official Release build does. Default to "Release" here; override with
+    # PROJECT_VERSION_EXTRA=Beta/Alpha/Dev in the environment if needed.
+    BUILD_ARGS="${BUILD_ARGS} -DPROJECT_VERSION_EXTRA=${PROJECT_VERSION_EXTRA:-Release}"
     echo -e "cmake -S . -B build -G Ninja -DCMAKE_PREFIX_PATH="${DPS_PATH}/usr/local" -DSLIC3R_STATIC=1 ${BUILD_ARGS}"
     cmake -S . -B build -G Ninja \
         -DCMAKE_PREFIX_PATH="${DPS_PATH}/usr/local" \
