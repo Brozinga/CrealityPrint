@@ -11711,10 +11711,21 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                     }
                     all_plates_stats_item->selected = true;
 
-                    enable_select_plate_toolbar(false); //==>To: force update all plate thumbnails
-                    enable_select_plate_toolbar(true);
-                    wxGetApp().plater()->set_need_update(true);
-                    wxGetApp().plater()->update(true, true);
+                    // We're still inside this frame's render callback here (_render_imgui_select_plate_toolbar
+                    // is called from render()). Rebuilding the toolbar's GL textures
+                    // (enable_select_plate_toolbar deletes/recreates them) and Plater::update() (which
+                    // reloads the scene and re-renders plate thumbnails through GL) synchronously now
+                    // would touch/tear down GL state before this frame's glXSwapBuffers, leaving the
+                    // GLX drawable/context out of sync - the same class of X11 BadMatch crash fixed for
+                    // the Lite Mode toggle in BaseRenderer::render_legend(). Defer to run after the
+                    // current frame/event loop finishes.
+                    wxGetApp().CallAfter([]() {
+                        Plater* plater = wxGetApp().plater();
+                        plater->get_current_canvas3D()->enable_select_plate_toolbar(false); //==>To: force update all plate thumbnails
+                        plater->get_current_canvas3D()->enable_select_plate_toolbar(true);
+                        plater->set_need_update(true);
+                        plater->update(true, true);
+                    });
                     wxCommandEvent evt = wxCommandEvent(EVT_GLTOOLBAR_SLICE_ALL);
                     wxPostEvent(wxGetApp().plater(), evt);
                 }
@@ -11805,10 +11816,16 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                 item->selected                  = true;
                 // begin to slicing plate
                 if (item->slice_state != IMToolbarItem::SliceState::SLICED) {
-                    enable_select_plate_toolbar(false); //==>To: force update all plate thumbnails
-                    enable_select_plate_toolbar(true);
-                    wxGetApp().plater()->set_need_update(true);
-                    wxGetApp().plater()->update(true, true);
+                    // See the "All Plates" stats button above: defer the toolbar rebuild +
+                    // Plater::update() to run after this frame finishes, to avoid the same
+                    // mid-render GL teardown that crashes with an X11 BadMatch error.
+                    wxGetApp().CallAfter([]() {
+                        Plater* plater = wxGetApp().plater();
+                        plater->get_current_canvas3D()->enable_select_plate_toolbar(false); //==>To: force update all plate thumbnails
+                        plater->get_current_canvas3D()->enable_select_plate_toolbar(true);
+                        plater->set_need_update(true);
+                        plater->update(true, true);
+                    });
                 }
                 wxCommandEvent* evt = new wxCommandEvent(EVT_GLTOOLBAR_SELECT_SLICED_PLATE);
                 evt->SetInt(i);
