@@ -3596,7 +3596,6 @@ void MainFrame::init_menubar_as_editor()
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown() && m_tabpanel->GetSelection() == TabPosition::tp3DEditor;; }, this);
 
-    if (Slic3r::GUI::wxGetApp().isAlpha())
     {
         // creality add
         auto speed_menu = new wxMenu();
