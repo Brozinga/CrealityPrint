@@ -20,6 +20,7 @@
 //}
 #include <future>
 #include <functional>
+#include <chrono>
 #include <boost/asio.hpp>
 class WebRTCDecoder :  public YangSysMessageI
 {
@@ -45,6 +46,7 @@ public:
 private:
     bool m_isStop = false;
     Status m_status = STOPPED;
+    std::chrono::steady_clock::time_point m_connect_started{};
     YangPlayerHandle* m_player;
     YangFrame m_frame;
     std::mutex frame_mutex_;
