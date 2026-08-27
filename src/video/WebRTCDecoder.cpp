@@ -65,16 +65,30 @@ void WebRTCDecoder::startPlay(const std::string& strUrl)
         }
         }
     
-    if(m_status == CONNECTED&& strUrl==m_url)
+    // Same URL still actively connecting (the wait loop above timed out
+    // without reaching CONNECTED, but it hasn't been long) - don't re-enter
+    // playRtc() on top of an in-flight session. The underlying decoder/
+    // socket layer isn't safe against overlapping playRtc() calls on the
+    // same singleton: a duplicate call here (e.g. from a near-simultaneous
+    // /videostream request while the first one is still negotiating) tears
+    // down and recreates native sockets out from under the still-running
+    // receive thread, which crashes the process instead of just failing to
+    // connect. Bound this by staleness so a connection attempt that never
+    // resolves (no success()/failure() ever called) doesn't lock out every
+    // future retry forever.
+    const bool connecting_stale = m_status == CONNECTTING &&
+        std::chrono::steady_clock::now() - m_connect_started > std::chrono::seconds(5);
+    if(strUrl==m_url && (m_status == CONNECTED || (m_status == CONNECTTING && !connecting_stale)))
         return;
     std::cout << "connected!"<<m_status<<":"<<strUrl<<":"<<m_url<<"\r\n";
-    
-    if(m_status == CONNECTED)
+
+    if(m_status == CONNECTED || connecting_stale)
     {
         this->stopPlay();
         std::this_thread::sleep_for(std::chrono::milliseconds(120));
     }
     m_status = CONNECTTING;
+    m_connect_started = std::chrono::steady_clock::now();
     m_url = strUrl;
     m_isStop = false;
     //m_recevie_frame_callback = recevie_frame;
@@ -209,29 +223,33 @@ void WebRTCDecoder::receiveFrame(){
     //std::cout << "receive"<< "\r\n";
     if (t_vb)
     {
-        this->frame_mutex_.lock();
+        // Was a raw lock()/unlock() pair before, with an early "return" on
+        // the m_width<=0 path that skipped the unlock() - leaking the lock
+        // held forever. Every later caller of getFrameData() (the HTTP
+        // video-stream handler, on every frame) or the next receiveFrame()
+        // iteration then blocks on this same non-recursive mutex forever,
+        // hanging the stream. std::lock_guard releases on every return path.
+        std::lock_guard<std::mutex> guard(this->frame_mutex_);
         std::vector<unsigned char> frame_data;
         m_width = vb->m_width;//sync_buffer->width(sync_buffer->session);
         m_height = vb->m_height;//sync_buffer->height(sync_buffer->session);
-        
+
         if(m_width<=0)
         {
             return;
         }
-        std::vector<unsigned char> rgbData(m_width * m_height * 3); 
-        std::vector<unsigned char> yuvData(m_width * m_height*3/2); 
+        std::vector<unsigned char> rgbData(m_width * m_height * 3);
+        std::vector<unsigned char> yuvData(m_width * m_height*3/2);
         std::copy(t_vb,t_vb+yuvData.size(),yuvData.begin());
         //memncpy((void *)yuvData.data(),(void *)t_vb,yuvData.size());
         YUV420P_to_RGB24(yuvData.data(), rgbData.data(), m_width, m_height);
         int quality = 90;  // JPEG 质量
-    
+
         if (rgb_to_jpeg(rgbData.data(), m_width, m_height, quality, frame_data)) {
-            
+
             m_frame_data = frame_data;
-            
+
         }
-        this->frame_mutex_.unlock();
-        
     }
     
 }

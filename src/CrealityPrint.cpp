@@ -6815,7 +6815,23 @@ static bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor,v
 		     logPath.append(processNameStr);
 
 		     if (boost::filesystem::exists(oldPath)) {
-			 boost::filesystem::rename(oldPath, logPath);
+			 // boost::filesystem::rename() uses POSIX rename(), which throws
+			 // (crashing this crash handler via std::terminate) when oldPath
+			 // (breakpad's temp dir, usually /tmp) and logPath (the user's
+			 // config/log dir, usually under $HOME) are on different
+			 // filesystems/mounts - a common setup when /tmp is a separate
+			 // tmpfs. Use the non-throwing overload and fall back to a
+			 // copy+remove across devices instead of letting the exception
+			 // escape and abort the process on top of whatever crashed us.
+			 boost::system::error_code rename_ec;
+			 boost::filesystem::rename(oldPath, logPath, rename_ec);
+			 if (rename_ec) {
+			     boost::system::error_code copy_ec;
+			     boost::filesystem::copy_file(oldPath, logPath, boost::filesystem::copy_option::overwrite_if_exists, copy_ec);
+			     if (!copy_ec) {
+				 boost::filesystem::remove(oldPath, copy_ec);
+			     }
+			 }
 			 // 获取当前可执行文件路径
 			 char exePath[PATH_MAX];
 			 ssize_t len = readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
