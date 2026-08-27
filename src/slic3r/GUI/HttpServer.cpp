@@ -233,6 +233,15 @@ void session::read_next_line()
 
 void session::sendFrame(const boost::system::error_code &ec,boost::asio::ip::tcp::socket &socket, bool is_rtsp)
 {
+        // Keep this session alive for as long as its deferred timer/write
+        // callbacks below are pending. Without capturing self, the lambdas
+        // only hold a raw `this` (and a reference into this session's own
+        // socket member) - if the browser drops the /videostream connection
+        // (e.g. navigating away, or reconnecting the camera view) and that
+        // was the session's last owner, the object is destroyed while a
+        // still-pending async_wait/async_write callback later fires,
+        // calling back into a dangling this/socket and crashing.
+        std::shared_ptr<session> self = shared_from_this();
         std::vector<unsigned char> copy_frame;
     
         if(is_rtsp)
@@ -251,7 +260,7 @@ void session::sendFrame(const boost::system::error_code &ec,boost::asio::ip::tcp
         {
             this->m_video_timer->cancel();
             this->m_video_timer->expires_at(this->m_video_timer->expires_at()+boost::posix_time::milliseconds(150));
-            this->m_video_timer->async_wait([this, ec, &socket ,is_rtsp](const auto& error) {
+            this->m_video_timer->async_wait([this, self, ec, &socket ,is_rtsp](const auto& error) {
                     if (!error) {
                         //std::cout << "start send frame!\r\n";
                         this->sendFrame(ec,socket,is_rtsp);
@@ -274,8 +283,8 @@ void session::sendFrame(const boost::system::error_code &ec,boost::asio::ip::tcp
         buffers.emplace_back(boost::asio::buffer(frame_header_ptr->data(), frame_header_ptr->size()));
         buffers.emplace_back(boost::asio::buffer(frame_ptr->data(), frame_ptr->size()));
         
-        boost::asio::async_write(socket,  buffers,[this,&socket,is_rtsp,frame_header_ptr,frame_ptr](const boost::beast::error_code& ec, std::size_t s) {
-            
+        boost::asio::async_write(socket,  buffers,[this,self,&socket,is_rtsp,frame_header_ptr,frame_ptr](const boost::beast::error_code& ec, std::size_t s) {
+
             if(!ec)
             {
                 //std::cout << "send!"<<this->m_video_timer<<"\r\n";
@@ -283,7 +292,7 @@ void session::sendFrame(const boost::system::error_code &ec,boost::asio::ip::tcp
                 //this->sendFrame(ec,socket);
                 this->m_video_timer->cancel();
                 this->m_video_timer->expires_at(this->m_video_timer->expires_at()+boost::posix_time::milliseconds(150));
-                this->m_video_timer->async_wait([this, ec, &socket, is_rtsp](const auto& error) {
+                this->m_video_timer->async_wait([this, self, ec, &socket, is_rtsp](const auto& error) {
                     if (!error) {
                         //std::cout << "start send frame!\r\n";
                         this->sendFrame(ec,socket,is_rtsp);
