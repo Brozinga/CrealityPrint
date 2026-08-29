@@ -15,18 +15,14 @@ set(AUTO_CONVERT_3MF OFF)
 set(GUI_SIMPLE ON)
 
 message("aaaa SLIC3R_APP_NAME=${SLIC3R_APP_NAME}")
-if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h")
-    if(GENERATE_ORCA_HEADER)
-        message("libslic3r_version is exists")
-        file(READ "${CMAKE_CURRENT_SOURCE_DIR}/libslic3r_version.h.in" SLIC3R_VERSION_FILE OFFSET 2 LIMIT 1)
-        if("${SLIC3R_VERSION_FILE}" MATCHES  "1")
-            message(STATUS "need to update libslic3r_version.h")
-            configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libslic3r_version.h.in ${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h @ONLY)
-        endif()
-    endif()
-else()
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libslic3r_version.h.in ${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h @ONLY)
-endif()
+# Always regenerate: configure_file() already no-ops (doesn't touch mtime)
+# when the rendered content is unchanged, so gating this behind
+# GENERATE_ORCA_HEADER only ever causes harm - every production build
+# script (BuildLinux.sh, macos, clang) passes -DGENERATE_ORCA_HEADER=0, so
+# once this header existed once in a build dir, CREALITYPRINT_VERSION/
+# SLIC3R_VERSION (bumped in version.inc for every release) silently never
+# reached the compiled binary again on that build dir.
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libslic3r_version.h.in ${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h @ONLY)
 message("xxxx SLIC3R_APP_NAME=${SLIC3R_APP_NAME}")
 
 if (MINGW)
