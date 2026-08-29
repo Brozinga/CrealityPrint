@@ -889,6 +889,13 @@ void  MainFrame::show_log_window()
     m_log_window->Show();
 }
 
+void MainFrame::disconnect_cloud_views()
+{
+    if (m_webview) m_webview->GoOffline();
+    if (m_webmodellibrary_view) m_webmodellibrary_view->GoOffline();
+    if (m_printer_mgr_view) m_printer_mgr_view->destoryMqtt();
+}
+
 void MainFrame::switch_to_device_page()
 {
     static bool switching = false;

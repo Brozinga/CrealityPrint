@@ -3,6 +3,8 @@
 #include "GUI_App.hpp"
 #include "slic3r/GUI/WebViewDialog.hpp"
 #include "MainFrame.hpp"
+#include "HttpServer.hpp"
+#include "simple/MCPChatPanel.hpp"
 #include "Plater.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
@@ -866,6 +868,26 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxWindow *pa
             app_config->get("backup_interval", backup_interval);
             Slic3r::set_backup_interval(pbool ? boost::lexical_cast<long>(backup_interval) : 0);
             if (m_backup_interval_textinput != nullptr) { m_backup_interval_textinput->Enable(pbool); }
+        }
+
+        if (param == "camera_preview_enabled" && !checkbox->GetValue()) {
+            // Force-close any camera stream already open (e.g. the Device
+            // tab keeps polling in the background even while this modal
+            // Preferences dialog is up) instead of just refusing new ones.
+            wxGetApp().get_server()->stop_video_sessions();
+        }
+
+        if (param == "creality_cloud_enabled" && !checkbox->GetValue()) {
+            // Same idea for Offline Mode: force-close whatever cloud
+            // connections are already live (home page, Model Library,
+            // cloud device-sync MQTT, AI chat) rather than only blocking
+            // new ones. Re-enabling doesn't need special handling here -
+            // each surface already re-connects itself the next time it's
+            // opened/refreshed/navigated, now that the gate is open again.
+            if (wxGetApp().mainframe)
+                wxGetApp().mainframe->disconnect_cloud_views();
+            if (MCPChatPanel* ai_chat = GetActiveAIChatPanel())
+                ai_chat->GoOffline();
         }
 
         if (param == "sync_user_preset") {

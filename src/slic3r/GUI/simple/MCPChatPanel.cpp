@@ -553,6 +553,15 @@ void MCPChatPanel::OnBrowserDestroyed(wxWindowDestroyEvent& evt)
     evt.Skip();
 }
 
+void MCPChatPanel::GoOffline()
+{
+    if (!m_browser) return;
+    m_browser->Stop();
+    m_browser->LoadURL("about:blank");
+    m_page_loaded = false;
+    m_js_ready = false;
+}
+
 void MCPChatPanel::LoadChatPage()
 {
     if (!m_browser) return;

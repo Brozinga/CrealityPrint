@@ -376,6 +376,11 @@ public:
 
     PrinterMgrView* get_printer_mgr_view() { return m_printer_mgr_view; }
     WebModelLibraryView* get_modellibrary_view(){ return m_webmodellibrary_view; }
+    // Force-close every Creality Cloud connection this frame owns (home
+    // page webview, Model Library webview, cloud device-sync MQTT), for
+    // when Offline Mode is turned on while any of them are live. Safe to
+    // call at any time - each target is null-checked.
+    void disconnect_cloud_views();
     PA_Calibration_Dlg* m_pa_calib_dlg{ nullptr };
     Temp_Calibration_Dlg* m_temp_calib_dlg{ nullptr };
     MaxVolumetricSpeed_Test_Dlg* m_vol_test_dlg { nullptr };

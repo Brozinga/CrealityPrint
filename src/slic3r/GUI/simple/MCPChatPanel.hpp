@@ -45,6 +45,9 @@ public:
     void SendAgentEvent(const std::string& event_name, const nlohmann::json& data);
     void NotifyModelImported(const nlohmann::json& data);
     void ReloadChat();
+    // Force-navigate away from the cxagent chat page already loaded, for
+    // when Offline Mode is turned on while this panel is showing it.
+    void GoOffline();
     void SetCxAgentApiBaseAndReload(const std::string& api_base);
     void NotifySceneChanged();
     void NotifyCxAgentStatus();

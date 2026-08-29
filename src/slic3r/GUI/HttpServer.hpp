@@ -96,7 +96,12 @@ public:
     int get_port() { return port; }
     static std::shared_ptr<Response> bbl_auth_handle_request(const std::string& url);
     static std::shared_ptr<Response> creality_handle_request(const std::string& url);
-    
+    // Force-close every currently open /videostream|/rtspvideostream
+    // session and stop the underlying decoder, for when camera preview is
+    // turned off in Preferences while a stream is live. Safe to call even
+    // when nothing is connected.
+    void stop_video_sessions();
+
     #if defined(__linux__) || defined(__LINUX__)
     void sendFrame(const boost::system::error_code &ec,boost::asio::ip::tcp::socket &socket);
     std::mutex frame_mutex_;
@@ -162,6 +167,7 @@ public:
     }
     void start();
     void stop();
+    bool is_video_session() const { return m_is_video_session; }
     void handle_proxy_request(const std::string& url);
     void do_write_proxy(SocketPtr socket_ptr, const std::string& target_host,const std::string& target_path);
     void write_response(const std::string& response);

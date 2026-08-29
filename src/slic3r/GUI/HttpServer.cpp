@@ -466,6 +466,36 @@ void HttpServer::stop()
 #endif
 }
 
+void HttpServer::stop_video_sessions()
+{
+    if (server_) {
+        // The sessions/sockets are owned by the io_service thread; this can
+        // be called from the wx UI thread (a Preferences checkbox toggle),
+        // so marshal the actual close over instead of touching asio state
+        // cross-thread.
+        boost::asio::post(server_->io_service, [this]() {
+            if (!server_)
+                return;
+            std::vector<std::shared_ptr<session>> video_sessions;
+            for (auto& s : server_->sessions) {
+                if (s->is_video_session())
+                    video_sessions.push_back(s);
+            }
+            for (auto& s : video_sessions) {
+                server_->stop(s);
+            }
+        });
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "[Camera] preview disabled, stopping any active decoder";
+#if defined(__linux__) || defined(__LINUX__)
+    WebRTCDecoder::GetInstance()->stopPlay();
+#endif
+#if ENABLE_FFMPEG
+    RTSPDecoder::GetInstance()->stopPlay();
+#endif
+}
+
 void HttpServer::set_request_handler(const std::function<std::shared_ptr<Response>(const std::string&)>& request_handler)
 {
     this->m_request_handler = request_handler;

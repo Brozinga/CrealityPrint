@@ -113,6 +113,11 @@ public:
     void Reload();
     wxString GetURL();
 	wxWebView* Browse(){ return m_browser;};
+    // Force-navigate away from any Creality Cloud content already loaded,
+    // for when Offline Mode is turned on while this panel is showing it.
+    // Bypasses GetURL()/Reload() (which already refuse to load cloud URLs
+    // while offline) since those don't touch a page that's already loaded.
+    void GoOffline() { if (m_browser) { m_browser->Stop(); m_browser->LoadURL("about:blank"); } }
 private:
 
     wxWebView*  m_browser = nullptr;

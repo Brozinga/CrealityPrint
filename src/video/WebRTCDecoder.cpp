@@ -43,11 +43,18 @@ WebRTCDecoder* WebRTCDecoder::GetInstance()
 void WebRTCDecoder::stopPlay()
 {
     m_isStop = true;
-    std::future_status status = m_playFutrue.wait_for(std::chrono::seconds(2));
-    if (status == std::future_status::ready)
-	{
-		//cout << "线程执行完" << endl;
-	}	
+    // m_playFutrue is only ever set when startPlay() actually launched the
+    // receive thread (err == 0 from playRtc()). Calling wait_for() on a
+    // future with no associated state throws std::future_error - guard it
+    // so stopPlay() is safe to call unconditionally (e.g. from the camera
+    // preview toggle) even when no stream was ever started.
+    if (m_playFutrue.valid()) {
+        std::future_status status = m_playFutrue.wait_for(std::chrono::seconds(2));
+        if (status == std::future_status::ready)
+        {
+            //cout << "线程执行完" << endl;
+        }
+    }
     if (m_player) m_player->stopPlay();
 
 }
