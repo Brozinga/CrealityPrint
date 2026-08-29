@@ -4,6 +4,7 @@
 #include <iostream>
 #include <mutex>
 #include <stack>
+#include <chrono>
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -145,6 +146,12 @@ private:
     boost::asio::streambuf proxy_buff;
     boost::asio::steady_timer timer_;
     std::map<std::string, SocketPtr> m_proxy_sockets;
+    // Set once this session starts serving /videostream, so stop() can log
+    // camera-stream disconnects without spamming the log for every static
+    // asset request the embedded server also handles.
+    bool m_is_video_session = false;
+    std::chrono::steady_clock::time_point m_video_started{};
+    std::chrono::steady_clock::time_point m_last_empty_frame_log{};
 public:
     session(HttpServer::IOServer& server, boost::asio::ip::tcp::socket socket) : server(server), socket(std::move(socket)),timer_(server.io_service) {
         
