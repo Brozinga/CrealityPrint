@@ -7274,6 +7274,12 @@ void Plater::priv::select_brim_ears() {
 
 void Plater::priv::select_ai_cloud_service()
 {
+    if (!Slic3r::GUI::wxGetApp().is_cloud_enabled()) {
+        MessageDialog(q, _L("Access to Creality Cloud servers is disabled in Preferences > Network. "
+                             "Turn it back on to use AI Cloud Service."), _L("Offline Mode"), wxICON_INFORMATION | wxOK)
+            .ShowModal();
+        return;
+    }
     if (!Slic3r::GUI::wxGetApp().is_login()) {
         wxGetApp().swith_community_sub_page("login");
     } else {
@@ -12917,6 +12923,12 @@ bool Plater::priv::on_action_send_to_local_net_printer(bool isall, bool skip_saf
 
 void Plater::priv::on_action_upload_3mf(bool isall)
 {
+    if (!wxGetApp().is_cloud_enabled()) {
+        MessageDialog(q, _L("Access to Creality Cloud servers is disabled in Preferences > Network."),
+                      _L("Offline Mode"), wxICON_INFORMATION | wxOK).ShowModal();
+        return;
+    }
+
     if (!m_upload_3mf_dlg)
         m_upload_3mf_dlg = new Upload3mfToCloudDialog(q);
 
@@ -12933,6 +12945,12 @@ void Plater::priv::on_action_upload_3mf(bool isall)
 
 void Plater::priv::on_action_upload_gcode()
 {
+    if (!wxGetApp().is_cloud_enabled()) {
+        MessageDialog(q, _L("Access to Creality Cloud servers is disabled in Preferences > Network."),
+                      _L("Offline Mode"), wxICON_INFORMATION | wxOK).ShowModal();
+        return;
+    }
+
     if (!m_upload_gcode_dlg)
         m_upload_gcode_dlg = new UploadGcodeToCloudDialog(q);
 

@@ -398,6 +398,14 @@ private:
     bool show_3d_navigator() const { return app_config->get_bool("show_3d_navigator"); }
     void toggle_show_3d_navigator() const { app_config->set_bool("show_3d_navigator", !show_3d_navigator()); }
 
+    // Master switch (Preferences > General) for all outbound access to
+    // Creality's cloud servers (login, model library, AI cloud, cloud
+    // print/upload, community home page, telemetry, update checks, ...).
+    // Every call site that reaches those servers must check this first and
+    // skip the request entirely when it's false - LAN printer control must
+    // keep working regardless.
+    bool is_cloud_enabled() const { return app_config->get_bool("creality_cloud_enabled"); }
+
     wxString get_inf_dialog_contect () {return m_info_dialog_content;};
 
     bool send_app_message(const std::string& msg,bool bforce = false);

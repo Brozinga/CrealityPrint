@@ -2682,7 +2682,7 @@ static wxMenu* generate_help_menu(MainFrame* mainframe)
             wxGetApp().check_new_version_cx(true, 1);
 
         }, "", nullptr, []() {
-            return true;
+            return wxGetApp().is_cloud_enabled();
         });
 
     // -- hide the network test

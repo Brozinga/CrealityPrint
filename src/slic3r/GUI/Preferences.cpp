@@ -1506,6 +1506,17 @@ wxWindow* PreferencesDialog::create_general_page()
         _L("Enable advanced Gcode preview."), 50,
         "enable_advanced_gcode_viewer");
 
+    auto title_network = create_item_title(_L("Network"), page, _L("Network"));
+    auto item_cloud_enabled = create_item_checkbox(_L("Access Creality Cloud servers"), page,
+        _L("When disabled, the app will not attempt to reach Creality's cloud servers at all (login, model library, "
+           "AI cloud, cloud print/upload, community home page, update checks, ...). LAN printer control keeps "
+           "working. Some menu items may need the app to be restarted to fully reflect this change."), 50,
+        "creality_cloud_enabled");
+    auto item_camera_preview_enabled = create_item_checkbox(_L("Show camera preview in Send to Printer"), page,
+        _L("When disabled, the camera preview in the \"Send to Lan Printer\" window is hidden and the app will "
+           "not attempt to connect to the printer's camera."), 50,
+        "camera_preview_enabled");
+
 
     //item_user_exp->
     auto item_save_presets = create_item_button(_L("Clear my choice on the unsaved presets."), _L("Clear"), page, L"", _L("Clear my choice on the unsaved presets."), []() {
@@ -1575,6 +1586,12 @@ wxWindow* PreferencesDialog::create_general_page()
     sizer_page->AddSpacer(FromDIP(5));
 
 	sizer_page->Add(enable_advanced_gcode_viewer, 0, wxTOP, FromDIP(3));
+    sizer_page->AddSpacer(FromDIP(5));
+
+    sizer_page->Add(title_network, 0, wxTOP, FromDIP(10));
+    sizer_page->Add(item_cloud_enabled, 0, wxTOP, FromDIP(3));
+    sizer_page->AddSpacer(FromDIP(5));
+    sizer_page->Add(item_camera_preview_enabled, 0, wxTOP, FromDIP(3));
     sizer_page->AddSpacer(FromDIP(5));
 
     sizer_page->Add(item_step_import_setting, 0, wxTOP, FromDIP(3));

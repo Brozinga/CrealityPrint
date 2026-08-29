@@ -174,6 +174,25 @@ void session::read_next_line()
                         std::string timestamp = url_get_param(url_str, "timestamp");
                         bool isRtsp = url_str.find("/rtspvideostream") == 0;
 
+                        if (!wxGetApp().app_config->get_bool("camera_preview_enabled")) {
+                            // Camera preview turned off in Preferences - bail out before
+                            // any WebRTC/RTSP connection is attempted, so the printer's
+                            // camera is never contacted. Answer with an empty response
+                            // instead of opening the multipart stream.
+                            BOOST_LOG_TRIVIAL(info) << "[Camera] " << (isRtsp ? "/rtspvideostream" : "/videostream")
+                                << " requested but camera preview is disabled in Preferences, not connecting";
+                            const std::string resp =
+                                        "HTTP/1.1 204 No Content\r\n"
+                                        "Access-Control-Allow-Origin: *\r\n"
+                                        "Connection: close\r\n\r\n";
+                            std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>(resp);
+                            async_write(socket, boost::asio::buffer(resp_ptr->data(), resp_ptr->size()),
+                                        [this, self, resp_ptr](const boost::beast::error_code&, std::size_t) {
+                                            server.stop(self);
+                                        });
+                            return;
+                        }
+
                         std::string video_url = "";
                         HttpServer *pServer = wxGetApp().get_server();
                         std::cout << "start webrtc!"<<timestamp<<"\n";

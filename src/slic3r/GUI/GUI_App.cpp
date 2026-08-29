@@ -5834,6 +5834,16 @@ void GUI_App::ShowDownNetPluginDlg() {
 
 void GUI_App::ShowUserLogin(bool show,const wxString& loginUrl)
 {
+    // Every login path in the app (menu/topbar login button, re-login after
+    // logout, deep links) funnels through here, so gating it once here is
+    // enough to guarantee Offline Mode never opens a connection to
+    // Creality's login servers.
+    if (show && !is_cloud_enabled()) {
+        MessageDialog(mainframe, _L("Access to Creality Cloud servers is disabled in Preferences > Network. "
+                                     "Turn it back on to log in."), _L("Offline Mode"), wxICON_INFORMATION | wxOK)
+            .ShowModal();
+        return;
+    }
 #if 0
         // BBS: User Login Dialog
     if (show) {
@@ -8991,6 +9001,15 @@ Semver get_version(const std::string& str, const std::regex& regexp) {
 }
 void GUI_App::check_new_version_cx(bool show_tips, int by_user)
 {
+    if (!is_cloud_enabled()) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Creality Cloud access disabled, skipping update check";
+        if (show_tips) {
+            MessageDialog(mainframe, _L("Access to Creality Cloud servers is disabled in Preferences > Network."),
+                          _L("Offline Mode"), wxICON_INFORMATION | wxOK).ShowModal();
+        }
+        return;
+    }
+
     int palform_ = 0;
     #ifdef __WINDOWS__
         palform_ = 1;
