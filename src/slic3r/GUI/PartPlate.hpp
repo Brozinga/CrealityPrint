@@ -77,15 +77,17 @@ public:
         HEIGHT_LIMIT_BOTH
     };
 
-    enum { 
+    enum {
         e_at_edit = 0//pick6  //pick0
         , e_at_close//pick 1    //pick1
         , e_at_lay//pick3   //pick2
         , e_at_dir//pick2   //pick3
         , e_at_lock//pick4  //pick4
         , e_at_set//pick5   //pick5
+        , e_at_grid          // toggle plate grid lines
+        , e_at_hide_plate    // toggle plate + its objects visibility
         , e_at_unlock_triangle//pick0  //pick6
-        , e_at_count 
+        , e_at_count
     };
 
 private:
@@ -165,12 +167,18 @@ private:
     bool m_selected;
     int m_timelapse_warning_code = 0;
 
+    // session-only view toggles driven by the on-plate icons
+    bool m_hide_gridlines = false;
+    bool m_hide_plate_and_objects = false;
+
     // cr30 plate button show or not
     std::vector<decltype(e_at_count)> m_cr30_show_action_btns{
         e_at_lay,
         e_at_dir,
         e_at_lock,
         e_at_set,
+        e_at_grid,
+        e_at_hide_plate,
         e_at_unlock_triangle
     };
 
@@ -223,7 +231,7 @@ public:
     static const unsigned int PLATE_BASE_ID = 255 * 255 * 253;
     //static const unsigned int PLATE_NAME_HOVER_ID = 6;
     static const unsigned int PLATE_NAME_HOVER_ID = 0;
-    static const unsigned int GRABBER_COUNT = 7;
+    static const unsigned int GRABBER_COUNT = e_at_count;
 
     static ColorRGBA SELECT_COLOR;
     static ColorRGBA UNSELECT_COLOR;
@@ -298,6 +306,14 @@ public:
 
     void set_timelapse_warning_code(int code) { m_timelapse_warning_code = code; }
     int  timelapse_warning_code() { return m_timelapse_warning_code; }
+
+    // session-only view toggles (driven by the on-plate icons)
+    bool is_gridlines_hidden() const { return m_hide_gridlines; }
+    void set_gridlines_hidden(bool hide) { m_hide_gridlines = hide; }
+    void toggle_gridlines_hidden() { m_hide_gridlines = !m_hide_gridlines; }
+    bool is_plate_and_objects_hidden() const { return m_hide_plate_and_objects; }
+    void set_plate_and_objects_hidden(bool hide) { m_hide_plate_and_objects = hide; }
+    void toggle_plate_and_objects_hidden() { m_hide_plate_and_objects = !m_hide_plate_and_objects; }
     
     //get the print's object, result and index
     void get_print(PrintBase **print, GCodeResult **result, int *index);
@@ -752,6 +768,12 @@ public:
 
     //is locked
     bool is_locked(int index) { return m_plate_list[index]->is_locked();}
+
+    // session-only plate/object visibility toggles
+    bool has_hidden_plates() const;
+    // true when (obj_id, instance_id) sits on a plate whose "hide plate and objects" toggle is on.
+    // obj_id >= 1000 is treated as a per-plate wipe tower (plate index == obj_id - 1000).
+    bool is_instance_on_hidden_plate(int obj_id, int instance_id) const;
 
     //find plate by print index, return -1 if not found
     int find_plate_by_print_index(int index);

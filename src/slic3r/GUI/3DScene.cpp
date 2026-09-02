@@ -5,6 +5,7 @@
 #include "GUI_App.hpp"
 #include "GUI_Colors.hpp"
 #include "Plater.hpp"
+#include "PartPlate.hpp"
 #include "BitmapCache.hpp"
 #include "Camera.hpp"
 
@@ -1271,8 +1272,16 @@ GLVolumeWithIdAndZList volumes_to_render(const GLVolumePtrs& volumes, GLVolumeCo
     GLVolumeWithIdAndZList list;
     list.reserve(volumes.size());
 
+    // "hide plate and its objects" toggle: drop volumes that sit on a hidden plate.
+    bool skip_hidden_plate_volumes = false;
+    if (GUI::wxGetApp().plater() != nullptr)
+        skip_hidden_plate_volumes = GUI::wxGetApp().plater()->get_partplate_list().has_hidden_plates();
+
     for (unsigned int i = 0; i < (unsigned int)volumes.size(); ++i) {
         GLVolume* volume = volumes[i];
+        if (skip_hidden_plate_volumes && volume->composite_id.object_id >= 0 &&
+            GUI::wxGetApp().plater()->get_partplate_list().is_instance_on_hidden_plate(volume->object_idx(), volume->instance_idx()))
+            continue;
         bool is_transparent = volume->render_color.is_transparent();
         auto tempGlwipeTowerVolume = dynamic_cast<GLWipeTowerVolume *>(volume);
         if (tempGlwipeTowerVolume) { 

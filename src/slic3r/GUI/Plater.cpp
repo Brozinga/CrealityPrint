@@ -23064,6 +23064,40 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
             ret = -1;
         }
+    } else if ((action == PartPlate::e_at_grid) && (!right_click)) {
+        // toggle the plate grid lines (session-only, view toggle)
+        PartPlate* plate = p->partplate_list.get_plate(plate_index);
+        if (plate) {
+            plate->toggle_gridlines_hidden();
+            ret = 0;
+        } else {
+            ret = -1;
+        }
+        if (p->view3D) {
+            p->view3D->get_canvas3d()->set_as_dirty();
+            p->view3D->get_canvas3d()->request_extra_frame();
+        }
+        if (p->preview) {
+            p->preview->get_canvas3d()->set_as_dirty();
+            p->preview->get_canvas3d()->request_extra_frame();
+        }
+    } else if ((action == PartPlate::e_at_hide_plate) && (!right_click)) {
+        // toggle visibility of the plate and every object on it (session-only, view toggle)
+        PartPlate* plate = p->partplate_list.get_plate(plate_index);
+        if (plate) {
+            plate->toggle_plate_and_objects_hidden();
+            ret = 0;
+        } else {
+            ret = -1;
+        }
+        if (p->view3D) {
+            p->view3D->get_canvas3d()->set_as_dirty();
+            p->view3D->get_canvas3d()->request_extra_frame();
+        }
+        if (p->preview) {
+            p->preview->get_canvas3d()->set_as_dirty();
+            p->preview->get_canvas3d()->request_extra_frame();
+        }
     } else {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "invalid action %1%, with right_click=%2%" << action << right_click;
         ret = -1;

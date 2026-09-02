@@ -146,7 +146,11 @@ GLTexture* DispConfig::getTexture(TextureType tt, bool hover, bool sel, int half
             {e_tt_block_notification_close, {"block_notification_close.svg", false, false, false}},
             {e_tt_block_notification_close_hover, {"block_notification_close_hover.svg", false, false, false}},
             {e_tt_normal_tip_block_notification_close, {"block_notification_close.svg", true, false, false}},
-            {e_tt_normal_tip_block_notification_close_hover, {"block_notification_close_hover.svg", true, false, false}}
+            {e_tt_normal_tip_block_notification_close_hover, {"block_notification_close_hover.svg", true, false, false}},
+            {e_tt_plate_hidegrid, {"plate_hidegrid.png", true, true, true}},
+            {e_tt_plate_showgrid, {"plate_showgrid.png", true, true, true}},
+            {e_tt_plate_hideobj, {"plate_hideobj.png", true, true, true}},
+            {e_tt_plate_showobj, {"plate_showobj.png", true, true, true}}
         };
         std::string path = resources_dir() + "/images/";
         const auto &[name,needDark,needHover,needSel] = s_names[tt];

@@ -681,7 +681,7 @@ void PartPlate::calc_vertex_for_icons(int index, PickingModel& model, bool rever
 	auto bed_ext = get_extents(m_shape);
     Vec2d p = bed_ext[2];
 	if (m_plater && m_plater->get_build_volume_type() == BuildVolume_Type::Circle)
-		p[1] -= std::max(0.0, (bed_ext.size()(1) - 5 * PARTPLATE_ICON_SIZE - 4 * PARTPLATE_ICON_GAP_Y - PARTPLATE_ICON_GAP_TOP) / 2);
+		p[1] -= std::max(0.0, (bed_ext.size()(1) - 7 * PARTPLATE_ICON_SIZE - 6 * PARTPLATE_ICON_GAP_Y - PARTPLATE_ICON_GAP_TOP) / 2);
     
 	p(0) += PARTPLATE_ICON_GAP_LEFT;
     if (reverse_position_y)
@@ -707,8 +707,8 @@ void PartPlate::calc_vertex_for_icons_background(GLModel &buffer)
 	auto bed_ext = get_extents(m_shape);
     Vec2d p = bed_ext[2];
 
-	poly.contour.append({ scale_(p(0) + PARTPLATE_ICON_GAP_LEFT), scale_(p(1) - 5 * (PARTPLATE_ICON_SIZE + PARTPLATE_ICON_GAP_Y) - PARTPLATE_ICON_GAP_TOP) });
-	poly.contour.append({ scale_(p(0) + PARTPLATE_ICON_GAP_LEFT + PARTPLATE_ICON_SIZE), scale_(p(1) - 5 * (PARTPLATE_ICON_SIZE + PARTPLATE_ICON_GAP_Y)- PARTPLATE_ICON_GAP_TOP) });
+	poly.contour.append({ scale_(p(0) + PARTPLATE_ICON_GAP_LEFT), scale_(p(1) - 7 * (PARTPLATE_ICON_SIZE + PARTPLATE_ICON_GAP_Y) - PARTPLATE_ICON_GAP_TOP) });
+	poly.contour.append({ scale_(p(0) + PARTPLATE_ICON_GAP_LEFT + PARTPLATE_ICON_SIZE), scale_(p(1) - 7 * (PARTPLATE_ICON_SIZE + PARTPLATE_ICON_GAP_Y)- PARTPLATE_ICON_GAP_TOP) });
 	poly.contour.append({ scale_(p(0) + PARTPLATE_ICON_GAP_LEFT + PARTPLATE_ICON_SIZE), scale_(p(1) - PARTPLATE_ICON_GAP_TOP)});
 	poly.contour.append({ scale_(p(0) + PARTPLATE_ICON_GAP_LEFT), scale_(p(1) - PARTPLATE_ICON_GAP_TOP) });
 
@@ -965,6 +965,9 @@ void PartPlate::render_exclude_area() {
 }*/
 
 void PartPlate::render_grid(bool bottom) {
+	// hidden via the on-plate "hide grid lines" toggle
+	if (m_hide_gridlines)
+		return;
 	//glsafe(::glEnable(GL_MULTISAMPLE));
 	// draw grid
 	glsafe(::glEnable(GL_LINE_SMOOTH));
@@ -1064,6 +1067,8 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
              const std::string s_u8l[] = {
                 _u8L("Edit current plate name"), _u8L("Remove current plate (if not last one)"), _u8L("Arrange objects on current plate"),
                 _u8L("Auto orient objects on current plate"), _u8L("Lock current plate"), _u8L("Customize current plate"),
+                m_hide_gridlines ? _u8L("Show grid lines on current plate") : _u8L("Hide grid lines on current plate"),
+                m_hide_plate_and_objects ? _u8L("Show current plate and its objects") : _u8L("Hide current plate and its objects"),
                 _u8L("Unlock current plate"),
             };
 			for(int i=0;i<e_at_unlock_triangle;++i)
@@ -1094,8 +1099,12 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                     if (edited) {
                         offset = DispConfig::e_tt_setting_dirty - DispConfig::e_tt_edit;
 					}
+				} else if (i == e_at_grid) {
+					offset = (m_hide_gridlines ? DispConfig::e_tt_plate_showgrid : DispConfig::e_tt_plate_hidegrid) - DispConfig::e_tt_edit;
+				} else if (i == e_at_hide_plate) {
+					offset = (m_hide_plate_and_objects ? DispConfig::e_tt_plate_showobj : DispConfig::e_tt_plate_hideobj) - DispConfig::e_tt_edit;
 				}
-                        
+
 				auto btype = DispConfig::TextureType(DispConfig::e_tt_edit + offset);
 				auto tex = DispConfig().getTexture(btype, hover, m_selected);
 				render_icon_texture(md, *tex);
@@ -2937,7 +2946,7 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, Ve
 		if (m_plater && wxGetApp().preset_bundle) {
 			bool machine_is_belt = wxGetApp().preset_bundle->machine_is_belt();
 
-			for (int i=e_at_close;i<=e_at_set;++i)
+			for (int i=e_at_close;i<=e_at_hide_plate;++i)
                 calc_vertex_for_icons(i - 1, m_action_icon[i], machine_is_belt);
             //calc_vertex_for_icons_background(m_right_top);
 
@@ -3006,8 +3015,12 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
 	, bool bottom, bool only_body, HeightLimitMode mode, int hover_id,int vender, bool show_logo, bool show_grid)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
+    // "hide plate and its objects" toggle: skip the whole plate body (grid, border,
+    // exclude area, logo, height limit) but keep the on-plate icons so the user can
+    // toggle it back on. The objects themselves are filtered out in volumes_to_render().
+    const bool plate_hidden = m_hide_plate_and_objects;
     GLShaderProgram *shader = wxGetApp().get_shader("flat");
-    if (shader != nullptr) {
+    if (shader != nullptr && !plate_hidden) {
         shader->start_using();
         glsafe(::glEnable(GL_BLEND));
         glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -3029,10 +3042,11 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
         shader->stop_using();
     }
 
-    if (!bottom && m_selected && show_logo)
+    if (!bottom && m_selected && show_logo && !plate_hidden)
     	render_logo(bottom,vender);
     render_icons(bottom, only_body, hover_id);
-    render_only_numbers(bottom);
+    if (!plate_hidden)
+        render_only_numbers(bottom);
     glsafe(::glDisable(GL_DEPTH_TEST));
 }
 
@@ -4323,6 +4337,32 @@ int PartPlateList::lock_plate(int index, bool state)
 	plate->lock(state);
 
 	return ret;
+}
+
+bool PartPlateList::has_hidden_plates() const
+{
+	for (PartPlate* plate : m_plate_list) {
+		if (plate && plate->is_plate_and_objects_hidden())
+			return true;
+	}
+	return false;
+}
+
+bool PartPlateList::is_instance_on_hidden_plate(int obj_id, int instance_id) const
+{
+	// per-plate wipe tower: object id is 1000 + plate index
+	if (obj_id >= 1000) {
+		int plate_idx = obj_id - 1000;
+		if (plate_idx >= 0 && plate_idx < (int) m_plate_list.size())
+			return m_plate_list[plate_idx]->is_plate_and_objects_hidden();
+		return false;
+	}
+
+	for (PartPlate* plate : m_plate_list) {
+		if (plate && plate->is_plate_and_objects_hidden() && plate->contain_instance(obj_id, instance_id))
+			return true;
+	}
+	return false;
 }
 
 //find plate by print index, return -1 if not found

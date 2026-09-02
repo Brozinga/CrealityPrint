@@ -44,6 +44,10 @@ namespace GUI {
             e_tt_block_notification_close_hover,
             e_tt_normal_tip_block_notification_close,
             e_tt_normal_tip_block_notification_close_hover,
+            e_tt_plate_hidegrid,
+            e_tt_plate_showgrid,
+            e_tt_plate_hideobj,
+            e_tt_plate_showobj,
             e_tt_count
         };
        
