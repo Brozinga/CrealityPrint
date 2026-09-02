@@ -49,6 +49,11 @@
 
 ### Device & Camera
 - Added diagnostic logging around the camera preview to explain freezes: the app now logs when a WebRTC stream stalls (no new frame for several seconds while still "connected") and when it recovers, when a reconnect attempt is silently ignored, when the RTC connection fails, and the start/end of each `/videostream` session. Everything goes to the persistent app log.
+- **The camera stream now recovers on its own after it stalls.** On some printers (e.g. K2 Plus) a dropped WebRTC stream would stay dead — reloading the video page did nothing and only a full app restart brought it back. Three bugs in `WebRTCDecoder` combined to cause it and are now fixed:
+  - A frame arriving with a non-positive size made `receiveFrame()` return while still holding the frame lock, so every later access to the decoder blocked forever.
+  - `startPlay()` treated "connected to the same URL" as "already playing", so a reload never rebuilt a connection the peer had dropped silently; `stopPlay()` never reset the status.
+  - `startPlay()` held the frame lock across the teardown of the old session and the start of the new receive thread — which was itself waiting on that same lock.
+  The control path now has its own lock, the frame lock guards only the frame buffer (RAII), and `getFrameData()` returns a copy taken under the lock. On top of that the decoder tracks the time of the last decoded frame: a stream silent for 8 seconds counts as dead, `startPlay()` rebuilds it instead of returning early, and a watchdog thread reconnects on its own so a stalled stream recovers with no user action (logged as `webrtc stream stalled, reconnecting: <url>`). Closing the camera panel suppresses the watchdog.
 
 ### Plate view controls
 - Added two icons to each plate's on-bed icon column, matching the existing lock / arrange / settings style:
@@ -58,7 +63,8 @@
 
 ### Build
 - `libslic3r_version.h` is now regenerated on every CMake configure, so the version shown inside the application always matches `version.inc` (previously it could stay pinned to the first value it was generated with).
+- `run_gettext.sh` is tracked with its executable bit set. `BuildLinux.sh -s` calls it directly, so without it the Docker build failed with `Permission denied` right after the binary linked.
 
 ### Version
-- Updated application version to **7.2.2.5480**.
+- Updated application version to **7.2.1.5481**.
 
