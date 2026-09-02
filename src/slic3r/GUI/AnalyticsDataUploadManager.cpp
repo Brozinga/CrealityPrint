@@ -184,7 +184,7 @@ void AnalyticsDataUploadManager::triggerUploadTasks(AnalyticsUploadTiming trigge
 {
     try
     {
-        if(wxGetApp().is_privacy_checked()) {
+        if(wxGetApp().is_privacy_checked() && wxGetApp().is_cloud_enabled()) {
             for (const auto& dataEventType : dataEventTypes) {
                 processUploadData(dataEventType, plate_idx, device_mac);
             }
@@ -202,7 +202,7 @@ void AnalyticsDataUploadManager::triggerUploadTasksWithPayload(const AnalyticsEv
 {
     try
     {
-        if (wxGetApp().is_privacy_checked()) {
+        if (wxGetApp().is_privacy_checked() && wxGetApp().is_cloud_enabled()) {
             nlohmann::json js = payload.data;
             switch (payload.type) {
             case AnalyticsDataEventType::ANALYTICS_MODEL_ACTION_ADD:

@@ -597,6 +597,22 @@ void AppConfig::set_defaults()
         set_bool("show_home_page", true);
     }
 
+    // Master switch for all outbound access to Creality's cloud servers
+    // (login, model library, AI cloud, cloud print/upload, community home
+    // page, telemetry, update checks, ...). When false, the app must stay
+    // fully usable over LAN (direct-IP printer control/camera) without
+    // ever attempting to reach those servers.
+    if (get("creality_cloud_enabled").empty()) {
+        set_bool("creality_cloud_enabled", true);
+    }
+
+    // Camera preview shown in the "Send to Lan Printer" dialog. When
+    // false, the app must not even attempt to connect to the printer's
+    // camera (see HttpServer's /videostream handler).
+    if (get("camera_preview_enabled").empty()) {
+        set_bool("camera_preview_enabled", true);
+    }
+
     if (get("show_printable_box").empty()) {
         set_bool("show_printable_box", true);
     }

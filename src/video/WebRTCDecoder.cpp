@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <jpeglib.h>
+#include <boost/log/trivial.hpp>
 WebRTCDecoder* WebRTCDecoder::g_pSingleton = new (std::nothrow) WebRTCDecoder();
 WebRTCDecoder::WebRTCDecoder()
 {
@@ -42,11 +43,18 @@ WebRTCDecoder* WebRTCDecoder::GetInstance()
 void WebRTCDecoder::stopPlay()
 {
     m_isStop = true;
-    std::future_status status = m_playFutrue.wait_for(std::chrono::seconds(2));
-    if (status == std::future_status::ready)
-	{
-		//cout << "线程执行完" << endl;
-	}	
+    // m_playFutrue is only ever set when startPlay() actually launched the
+    // receive thread (err == 0 from playRtc()). Calling wait_for() on a
+    // future with no associated state throws std::future_error - guard it
+    // so stopPlay() is safe to call unconditionally (e.g. from the camera
+    // preview toggle) even when no stream was ever started.
+    if (m_playFutrue.valid()) {
+        std::future_status status = m_playFutrue.wait_for(std::chrono::seconds(2));
+        if (status == std::future_status::ready)
+        {
+            //cout << "线程执行完" << endl;
+        }
+    }
     if (m_player) m_player->stopPlay();
 
 }
@@ -79,11 +87,26 @@ void WebRTCDecoder::startPlay(const std::string& strUrl)
     const bool connecting_stale = m_status == CONNECTTING &&
         std::chrono::steady_clock::now() - m_connect_started > std::chrono::seconds(5);
     if(strUrl==m_url && (m_status == CONNECTED || (m_status == CONNECTTING && !connecting_stale)))
+    {
+        // This is the silent no-op path: a caller (e.g. the browser
+        // re-issuing GET /videostream on Refresh, or reconnecting after a
+        // network hiccup) asked to (re)start the same URL while we still
+        // think we're connected/connecting to it. If the underlying link
+        // actually died without failure() ever firing, we get stuck here
+        // forever and the video freezes with nothing else logged - so log
+        // it explicitly rather than staying silent.
+        BOOST_LOG_TRIVIAL(info) << "[WebRTC] startPlay(" << strUrl << ") ignored: already status="
+            << m_status << " for the same URL";
         return;
+    }
     std::cout << "connected!"<<m_status<<":"<<strUrl<<":"<<m_url<<"\r\n";
+    BOOST_LOG_TRIVIAL(info) << "[WebRTC] startPlay url=" << strUrl << " prevUrl=" << m_url
+        << " prevStatus=" << m_status << " stale=" << connecting_stale;
 
     if(m_status == CONNECTED || connecting_stale)
     {
+        BOOST_LOG_TRIVIAL(warning) << "[WebRTC] tearing down previous session before reconnect (status="
+            << m_status << ", stale=" << connecting_stale << ")";
         this->stopPlay();
         std::this_thread::sleep_for(std::chrono::milliseconds(120));
     }
@@ -91,11 +114,14 @@ void WebRTCDecoder::startPlay(const std::string& strUrl)
     m_connect_started = std::chrono::steady_clock::now();
     m_url = strUrl;
     m_isStop = false;
+    m_last_frame_time = std::chrono::steady_clock::time_point{};
+    m_stall_logged = false;
     //m_recevie_frame_callback = recevie_frame;
     //QString url = "http://172.23.208.238:8000/call/demo";
     m_context->synMgr.session->playBuffer->resetVideoClock(m_context->synMgr.session->playBuffer->session);
     int32_t err = m_player->playRtc(0, const_cast<char*>(m_url.c_str()));
     std::cout << "connected!"<<err<<"\r\n";
+    BOOST_LOG_TRIVIAL(info) << "[WebRTC] playRtc(" << m_url << ") returned " << err;
     if (!err)
     {
         m_playFutrue = std::async(std::launch::async, [this](){
@@ -106,6 +132,11 @@ void WebRTCDecoder::startPlay(const std::string& strUrl)
             }
 
         });
+    }
+    else
+    {
+        BOOST_LOG_TRIVIAL(error) << "[WebRTC] playRtc(" << m_url << ") failed synchronously, err=" << err;
+        m_status = STOPPED;
     }
 }
 
@@ -216,12 +247,31 @@ std::vector<unsigned char>& WebRTCDecoder::getFrameData()
 }
 void WebRTCDecoder::receiveFrame(){
      //uint8_t* t_vb = m_context->synMgr.session->playBuffer->getVideoRef(m_context->synMgr.session->playBuffer->session, &m_frame);
+    const auto now = std::chrono::steady_clock::now();
     YangVideoBuffer*  vb = m_player->getVideoBuffer();
     if(vb == nullptr)
+    {
+        // No video buffer at all: the player isn't producing anything.
+        // getFrameData() below keeps handing out the last JPEG it ever
+        // decoded regardless of this, so the browser just sees a frozen
+        // image - nothing else would say why. Throttled since this is
+        // polled every ~2ms.
+        if(m_status == CONNECTED && now - m_last_novideobuffer_log > std::chrono::seconds(3))
+        {
+            BOOST_LOG_TRIVIAL(warning) << "[WebRTC] no video buffer from player while status=CONNECTED (url="
+                << m_url << ")";
+            m_last_novideobuffer_log = now;
+        }
         return;
+    }
     uint8_t* t_vb = vb->getVideoRef(&m_frame);
     //std::cout << "receive"<< "\r\n";
-    if (t_vb)
+    // getVideoRef() can return a non-null pointer into the ring buffer
+    // even when no new frame has arrived since the last poll, so use the
+    // frame's own pts to tell an actually-new frame apart from the same
+    // stale one being handed back repeatedly.
+    const bool isNewFrame = t_vb && m_frame.pts != m_last_frame_pts;
+    if (t_vb && isNewFrame)
     {
         // Was a raw lock()/unlock() pair before, with an early "return" on
         // the m_width<=0 path that skipped the unlock() - leaking the lock
@@ -233,9 +283,12 @@ void WebRTCDecoder::receiveFrame(){
         std::vector<unsigned char> frame_data;
         m_width = vb->m_width;//sync_buffer->width(sync_buffer->session);
         m_height = vb->m_height;//sync_buffer->height(sync_buffer->session);
+        m_last_frame_pts = m_frame.pts;
 
         if(m_width<=0)
         {
+            BOOST_LOG_TRIVIAL(warning) << "[WebRTC] got a frame with invalid size " << m_width << "x" << m_height
+                << " (url=" << m_url << ")";
             return;
         }
         std::vector<unsigned char> rgbData(m_width * m_height * 3);
@@ -250,16 +303,47 @@ void WebRTCDecoder::receiveFrame(){
             m_frame_data = frame_data;
 
         }
+
+        // Frame successfully decoded: clear the stall watchdog, logging a
+        // recovery message if we'd previously flagged a stall so the log
+        // shows both when the freeze started and when it ended.
+        if(m_stall_logged)
+        {
+            BOOST_LOG_TRIVIAL(info) << "[WebRTC] frame stream resumed after "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_frame_time).count()
+                << "ms without a new frame (url=" << m_url << ")";
+            m_stall_logged = false;
+        }
+        m_last_frame_time = now;
     }
-    
+    else if(m_status == CONNECTED && m_last_frame_time.time_since_epoch().count() != 0)
+    {
+        // No new frame this poll. Normal for brief gaps between frames at
+        // the stream's actual framerate, but if it drags on while we're
+        // still marked CONNECTED, the underlying rtc link most likely
+        // died silently (e.g. wifi drop) without ever calling failure() -
+        // that's the freeze the user sees with no log to explain it. Log
+        // once when the gap crosses the threshold, not on every poll.
+        const auto gap = now - m_last_frame_time;
+        if(gap > std::chrono::seconds(3) && !m_stall_logged)
+        {
+            BOOST_LOG_TRIVIAL(warning) << "[WebRTC] video stream appears stalled: no new frame for "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(gap).count()
+                << "ms (url=" << m_url << ")";
+            m_stall_logged = true;
+        }
+    }
 }
 void WebRTCDecoder::success()
 {
     m_status = CONNECTED;
-    
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - m_connect_started).count();
+    BOOST_LOG_TRIVIAL(info) << "[WebRTC] connected: url=" << m_url << " after " << elapsed << "ms";
 }
 void WebRTCDecoder::failure(int32_t errcode)
 {
     m_status = STOPPED;
+    BOOST_LOG_TRIVIAL(error) << "[WebRTC] connection failed: url=" << m_url << " errcode=" << errcode;
     //emit RtcConnectFailure(errcode);
 }

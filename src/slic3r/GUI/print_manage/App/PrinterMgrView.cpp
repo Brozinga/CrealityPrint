@@ -563,6 +563,14 @@ void PrinterMgrView::destoryMqtt()
 }
 void PrinterMgrView::initMqtt()
 {
+    if (!Slic3r::GUI::wxGetApp().is_cloud_enabled()) {
+        // This connects to Creality's cloud MQTT relay (mqtt.crealitycloud.*)
+        // for cross-device sync, distinct from the direct-IP MQTT used for
+        // LAN printer control - keep it from ever dialing out while offline.
+        BOOST_LOG_TRIVIAL(info) << "[PrinterMgrView] Creality Cloud access disabled, not starting cloud MQTT sync";
+        return;
+    }
+
     std::map<std::string, std::string> extra_headers = Slic3r::GUI::wxGetApp().get_extra_header();
     std::string duid = "";
     std::string plat = "11";

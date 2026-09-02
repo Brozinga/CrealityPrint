@@ -553,9 +553,26 @@ void MCPChatPanel::OnBrowserDestroyed(wxWindowDestroyEvent& evt)
     evt.Skip();
 }
 
+void MCPChatPanel::GoOffline()
+{
+    if (!m_browser) return;
+    m_browser->Stop();
+    m_browser->LoadURL("about:blank");
+    m_page_loaded = false;
+    m_js_ready = false;
+}
+
 void MCPChatPanel::LoadChatPage()
 {
     if (!m_browser) return;
+    if (!wxGetApp().is_cloud_enabled()) {
+        // This is called eagerly from the constructor (the AI chat panel
+        // is itself only created on demand, but once created it loads its
+        // chat page right away) as well as from explicit reload paths -
+        // gating here covers both without ever reaching cxagent.crealitycloud.*.
+        BOOST_LOG_TRIVIAL(info) << "[MCPChatPanel] Creality Cloud access disabled, not loading chat page";
+        return;
+    }
     m_page_loaded = false;
     m_js_ready = false;
     m_chat_page_origin.Clear();

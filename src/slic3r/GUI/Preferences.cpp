@@ -3,6 +3,8 @@
 #include "GUI_App.hpp"
 #include "slic3r/GUI/WebViewDialog.hpp"
 #include "MainFrame.hpp"
+#include "HttpServer.hpp"
+#include "simple/MCPChatPanel.hpp"
 #include "Plater.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
@@ -868,6 +870,26 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxWindow *pa
             if (m_backup_interval_textinput != nullptr) { m_backup_interval_textinput->Enable(pbool); }
         }
 
+        if (param == "camera_preview_enabled" && !checkbox->GetValue()) {
+            // Force-close any camera stream already open (e.g. the Device
+            // tab keeps polling in the background even while this modal
+            // Preferences dialog is up) instead of just refusing new ones.
+            wxGetApp().get_server()->stop_video_sessions();
+        }
+
+        if (param == "creality_cloud_enabled" && !checkbox->GetValue()) {
+            // Same idea for Offline Mode: force-close whatever cloud
+            // connections are already live (home page, Model Library,
+            // cloud device-sync MQTT, AI chat) rather than only blocking
+            // new ones. Re-enabling doesn't need special handling here -
+            // each surface already re-connects itself the next time it's
+            // opened/refreshed/navigated, now that the gate is open again.
+            if (wxGetApp().mainframe)
+                wxGetApp().mainframe->disconnect_cloud_views();
+            if (MCPChatPanel* ai_chat = GetActiveAIChatPanel())
+                ai_chat->GoOffline();
+        }
+
         if (param == "sync_user_preset") {
             bool sync = app_config->get("sync_user_preset") == "true" ? true : false;
             if (sync) {
@@ -1506,6 +1528,17 @@ wxWindow* PreferencesDialog::create_general_page()
         _L("Enable advanced Gcode preview."), 50,
         "enable_advanced_gcode_viewer");
 
+    auto title_network = create_item_title(_L("Network"), page, _L("Network"));
+    auto item_cloud_enabled = create_item_checkbox(_L("Access Creality Cloud servers"), page,
+        _L("When disabled, the app will not attempt to reach Creality's cloud servers at all (login, model library, "
+           "AI cloud, cloud print/upload, community home page, update checks, ...). LAN printer control keeps "
+           "working. Some menu items may need the app to be restarted to fully reflect this change."), 50,
+        "creality_cloud_enabled");
+    auto item_camera_preview_enabled = create_item_checkbox(_L("Show camera preview in Send to Printer"), page,
+        _L("When disabled, the camera preview in the \"Send to Lan Printer\" window is hidden and the app will "
+           "not attempt to connect to the printer's camera."), 50,
+        "camera_preview_enabled");
+
 
     //item_user_exp->
     auto item_save_presets = create_item_button(_L("Clear my choice on the unsaved presets."), _L("Clear"), page, L"", _L("Clear my choice on the unsaved presets."), []() {
@@ -1575,6 +1608,12 @@ wxWindow* PreferencesDialog::create_general_page()
     sizer_page->AddSpacer(FromDIP(5));
 
 	sizer_page->Add(enable_advanced_gcode_viewer, 0, wxTOP, FromDIP(3));
+    sizer_page->AddSpacer(FromDIP(5));
+
+    sizer_page->Add(title_network, 0, wxTOP, FromDIP(10));
+    sizer_page->Add(item_cloud_enabled, 0, wxTOP, FromDIP(3));
+    sizer_page->AddSpacer(FromDIP(5));
+    sizer_page->Add(item_camera_preview_enabled, 0, wxTOP, FromDIP(3));
     sizer_page->AddSpacer(FromDIP(5));
 
     sizer_page->Add(item_step_import_setting, 0, wxTOP, FromDIP(3));

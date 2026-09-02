@@ -173,6 +173,14 @@ void WebModelLibraryView::BindEvents()
 
 void WebModelLibraryView::load_url(const wxString& url)
 {
+    // Every navigation in this panel (initial load, search, "Online Models"
+    // tab switch, home button) funnels through here, and every URL it ever
+    // loads is Creality's cloud model marketplace - so gating this one
+    // function is enough to guarantee no request leaves while offline.
+    if (!wxGetApp().is_cloud_enabled()) {
+        BOOST_LOG_TRIVIAL(info) << "load_url: Creality Cloud access disabled, not loading: " << url.ToStdString();
+        return;
+    }
     if (m_browser && !url.IsEmpty()) {
         // Set cookies before navigation so the request carries expected state
         SetCookiesForUrl(url);

@@ -889,6 +889,13 @@ void  MainFrame::show_log_window()
     m_log_window->Show();
 }
 
+void MainFrame::disconnect_cloud_views()
+{
+    if (m_webview) m_webview->GoOffline();
+    if (m_webmodellibrary_view) m_webmodellibrary_view->GoOffline();
+    if (m_printer_mgr_view) m_printer_mgr_view->destoryMqtt();
+}
+
 void MainFrame::switch_to_device_page()
 {
     static bool switching = false;
@@ -2682,7 +2689,7 @@ static wxMenu* generate_help_menu(MainFrame* mainframe)
             wxGetApp().check_new_version_cx(true, 1);
 
         }, "", nullptr, []() {
-            return true;
+            return wxGetApp().is_cloud_enabled();
         });
 
     // -- hide the network test

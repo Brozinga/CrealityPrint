@@ -4,6 +4,7 @@
 #include <iostream>
 #include <mutex>
 #include <stack>
+#include <chrono>
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -95,7 +96,12 @@ public:
     int get_port() { return port; }
     static std::shared_ptr<Response> bbl_auth_handle_request(const std::string& url);
     static std::shared_ptr<Response> creality_handle_request(const std::string& url);
-    
+    // Force-close every currently open /videostream|/rtspvideostream
+    // session and stop the underlying decoder, for when camera preview is
+    // turned off in Preferences while a stream is live. Safe to call even
+    // when nothing is connected.
+    void stop_video_sessions();
+
     #if defined(__linux__) || defined(__LINUX__)
     void sendFrame(const boost::system::error_code &ec,boost::asio::ip::tcp::socket &socket);
     std::mutex frame_mutex_;
@@ -145,6 +151,12 @@ private:
     boost::asio::streambuf proxy_buff;
     boost::asio::steady_timer timer_;
     std::map<std::string, SocketPtr> m_proxy_sockets;
+    // Set once this session starts serving /videostream, so stop() can log
+    // camera-stream disconnects without spamming the log for every static
+    // asset request the embedded server also handles.
+    bool m_is_video_session = false;
+    std::chrono::steady_clock::time_point m_video_started{};
+    std::chrono::steady_clock::time_point m_last_empty_frame_log{};
 public:
     session(HttpServer::IOServer& server, boost::asio::ip::tcp::socket socket) : server(server), socket(std::move(socket)),timer_(server.io_service) {
         
@@ -155,6 +167,7 @@ public:
     }
     void start();
     void stop();
+    bool is_video_session() const { return m_is_video_session; }
     void handle_proxy_request(const std::string& url);
     void do_write_proxy(SocketPtr socket_ptr, const std::string& target_host,const std::string& target_path);
     void write_response(const std::string& response);

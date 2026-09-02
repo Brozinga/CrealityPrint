@@ -7274,6 +7274,12 @@ void Plater::priv::select_brim_ears() {
 
 void Plater::priv::select_ai_cloud_service()
 {
+    if (!Slic3r::GUI::wxGetApp().is_cloud_enabled()) {
+        MessageDialog(q, _L("Access to Creality Cloud servers is disabled in Preferences > Network. "
+                             "Turn it back on to use AI Cloud Service."), _L("Offline Mode"), wxICON_INFORMATION | wxOK)
+            .ShowModal();
+        return;
+    }
     if (!Slic3r::GUI::wxGetApp().is_login()) {
         wxGetApp().swith_community_sub_page("login");
     } else {
@@ -12917,6 +12923,12 @@ bool Plater::priv::on_action_send_to_local_net_printer(bool isall, bool skip_saf
 
 void Plater::priv::on_action_upload_3mf(bool isall)
 {
+    if (!wxGetApp().is_cloud_enabled()) {
+        MessageDialog(q, _L("Access to Creality Cloud servers is disabled in Preferences > Network."),
+                      _L("Offline Mode"), wxICON_INFORMATION | wxOK).ShowModal();
+        return;
+    }
+
     if (!m_upload_3mf_dlg)
         m_upload_3mf_dlg = new Upload3mfToCloudDialog(q);
 
@@ -12933,6 +12945,12 @@ void Plater::priv::on_action_upload_3mf(bool isall)
 
 void Plater::priv::on_action_upload_gcode()
 {
+    if (!wxGetApp().is_cloud_enabled()) {
+        MessageDialog(q, _L("Access to Creality Cloud servers is disabled in Preferences > Network."),
+                      _L("Offline Mode"), wxICON_INFORMATION | wxOK).ShowModal();
+        return;
+    }
+
     if (!m_upload_gcode_dlg)
         m_upload_gcode_dlg = new UploadGcodeToCloudDialog(q);
 
@@ -23045,6 +23063,40 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         } else {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
             ret = -1;
+        }
+    } else if ((action == PartPlate::e_at_grid) && (!right_click)) {
+        // toggle the plate grid lines (session-only, view toggle)
+        PartPlate* plate = p->partplate_list.get_plate(plate_index);
+        if (plate) {
+            plate->toggle_gridlines_hidden();
+            ret = 0;
+        } else {
+            ret = -1;
+        }
+        if (p->view3D) {
+            p->view3D->get_canvas3d()->set_as_dirty();
+            p->view3D->get_canvas3d()->request_extra_frame();
+        }
+        if (p->preview) {
+            p->preview->get_canvas3d()->set_as_dirty();
+            p->preview->get_canvas3d()->request_extra_frame();
+        }
+    } else if ((action == PartPlate::e_at_hide_plate) && (!right_click)) {
+        // toggle visibility of the plate and every object on it (session-only, view toggle)
+        PartPlate* plate = p->partplate_list.get_plate(plate_index);
+        if (plate) {
+            plate->toggle_plate_and_objects_hidden();
+            ret = 0;
+        } else {
+            ret = -1;
+        }
+        if (p->view3D) {
+            p->view3D->get_canvas3d()->set_as_dirty();
+            p->view3D->get_canvas3d()->request_extra_frame();
+        }
+        if (p->preview) {
+            p->preview->get_canvas3d()->set_as_dirty();
+            p->preview->get_canvas3d()->request_extra_frame();
         }
     } else {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "invalid action %1%, with right_click=%2%" << action << right_click;

@@ -238,6 +238,16 @@ WebViewPanel::WebViewPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxDefau
 
 wxString WebViewPanel::GetURL()
 {
+    if (!wxGetApp().is_cloud_enabled()) {
+        // The community home page is entirely cloud content (banners,
+        // staff picks, model previews pulled from Creality's servers) -
+        // there is no local-only variant of it to fall back to, and its
+        // JS bundle isn't something we can safely patch to skip its own
+        // network calls. Don't navigate there at all while offline.
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Creality Cloud access disabled, not loading community home page";
+        return "about:blank";
+    }
+
     // alpha/beta/dev 对社区的影响：社区使用不同的创想云服务环境
     // alpha：预发布环境（pre）+ cpp 启动的本地 http 服务
     // beta：生产环境 + c++ 启动的本地 http 服务

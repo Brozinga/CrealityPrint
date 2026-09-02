@@ -53,6 +53,16 @@ private:
     static WebRTCDecoder *g_pSingleton;
     boost::asio::ip::tcp::socket* m_psocket=nullptr;
     std::vector<unsigned char> m_frame_data;
+
+    // Watchdog state used to detect a stalled/frozen stream (frames stop
+    // arriving while m_status stays CONNECTED, e.g. the network drops
+    // without the underlying rtc lib ever calling failure()) and to
+    // throttle the diagnostic logging in receiveFrame() so it doesn't
+    // flood the log file at the ~2ms polling cadence.
+    std::chrono::steady_clock::time_point m_last_frame_time{};
+    std::chrono::steady_clock::time_point m_last_novideobuffer_log{};
+    bool m_stall_logged = false;
+    int64_t m_last_frame_pts = -1;
 protected:
     YangContext* m_context;
     std::string m_url;

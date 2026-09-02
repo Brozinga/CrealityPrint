@@ -97,6 +97,17 @@ void session::start()
 
 void session::stop()
 {
+    if(m_is_video_session)
+    {
+        // The camera view freezing is often reported with nothing in the
+        // log to say why; logging when the /videostream connection itself
+        // closes (and how long it had been open) lets us tell "the socket
+        // dropped" apart from "the socket stayed open but frames stopped
+        // arriving" (see the WebRTCDecoder stall log for the latter).
+        const auto uptime_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - m_video_started).count();
+        BOOST_LOG_TRIVIAL(info) << "[Camera] /videostream session closed after " << uptime_ms << "ms";
+    }
     boost::system::error_code ignored_ec;
     socket.shutdown(boost::asio::socket_base::shutdown_both, ignored_ec);
     socket.close(ignored_ec);
@@ -158,15 +169,39 @@ void session::read_next_line()
                         return ;
                     }
                     else if (url_str.find("/videostream") == 0 || url_str.find("/rtspvideostream") == 0) {
-                        
+
                         std::string   ip           = url_get_param(url_str, "ip");
                         std::string timestamp = url_get_param(url_str, "timestamp");
                         bool isRtsp = url_str.find("/rtspvideostream") == 0;
+
+                        if (!wxGetApp().app_config->get_bool("camera_preview_enabled")) {
+                            // Camera preview turned off in Preferences - bail out before
+                            // any WebRTC/RTSP connection is attempted, so the printer's
+                            // camera is never contacted. Answer with an empty response
+                            // instead of opening the multipart stream.
+                            BOOST_LOG_TRIVIAL(info) << "[Camera] " << (isRtsp ? "/rtspvideostream" : "/videostream")
+                                << " requested but camera preview is disabled in Preferences, not connecting";
+                            const std::string resp =
+                                        "HTTP/1.1 204 No Content\r\n"
+                                        "Access-Control-Allow-Origin: *\r\n"
+                                        "Connection: close\r\n\r\n";
+                            std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>(resp);
+                            async_write(socket, boost::asio::buffer(resp_ptr->data(), resp_ptr->size()),
+                                        [this, self, resp_ptr](const boost::beast::error_code&, std::size_t) {
+                                            server.stop(self);
+                                        });
+                            return;
+                        }
+
                         std::string video_url = "";
                         HttpServer *pServer = wxGetApp().get_server();
                         std::cout << "start webrtc!"<<timestamp<<"\n";
+                        this->m_is_video_session = true;
+                        this->m_video_started = std::chrono::steady_clock::now();
+                        BOOST_LOG_TRIVIAL(info) << "[Camera] " << (isRtsp ? "/rtspvideostream" : "/videostream")
+                            << " requested, printer ip=" << ip;
                         //pServer->mjpeg_server_started = true;
-                        
+
                         if(isRtsp)
                         {
                             video_url = (boost::format("rtsp://%1%/ch0_0") % ip).str();
@@ -200,12 +235,14 @@ void session::read_next_line()
                                     this->m_video_timer = new boost::asio::deadline_timer(server.io_service, boost::posix_time::milliseconds(100));
                                 }
                                 std::cout << "start send!\r\n";
+                                BOOST_LOG_TRIVIAL(info) << "[Camera] multipart stream started, begin sending frames";
                                 this->sendFrame(e,socket,isRtsp);
                             }else{
                                 //pServer->mjpeg_server_started = false;
                                 std::cout << "end send!\r\n";
+                                BOOST_LOG_TRIVIAL(warning) << "[Camera] failed to write multipart header: " << e.message();
                             }
-                            
+
                         });
                         
                     }else{
@@ -258,6 +295,18 @@ void session::sendFrame(const boost::system::error_code &ec,boost::asio::ip::tcp
         //this->frame_mutex_.unlock();
         if(copy_frame.size()==0)
         {
+            // No frame available yet at all (decoder hasn't produced a
+            // first frame). Distinct from the stall watchdog in
+            // WebRTCDecoder, which covers the more common case where a
+            // stale-but-nonzero frame keeps getting served forever after
+            // the stream dies - this only fires before that ever happens.
+            const auto now = std::chrono::steady_clock::now();
+            if(this->m_last_empty_frame_log.time_since_epoch().count() == 0 ||
+               now - this->m_last_empty_frame_log > std::chrono::seconds(3))
+            {
+                BOOST_LOG_TRIVIAL(warning) << "[Camera] no frame data available yet, waiting...";
+                this->m_last_empty_frame_log = now;
+            }
             this->m_video_timer->cancel();
             this->m_video_timer->expires_at(this->m_video_timer->expires_at()+boost::posix_time::milliseconds(150));
             this->m_video_timer->async_wait([this, self, ec, &socket ,is_rtsp](const auto& error) {
@@ -300,7 +349,7 @@ void session::sendFrame(const boost::system::error_code &ec,boost::asio::ip::tcp
                 });
             }else{
                 //this->mjpeg_server_started = false;
-                BOOST_LOG_TRIVIAL(error) << "send frame error: " << ec.message();
+                BOOST_LOG_TRIVIAL(error) << "[Camera] send frame error: " << ec.message();
                 std::cout << "end send!"<<ec.message()<<"\r\n";
             }
             
@@ -412,6 +461,36 @@ void HttpServer::stop()
     if (m_http_server_thread.joinable())
         m_http_server_thread.join();
     server_.reset();
+#if ENABLE_FFMPEG
+    RTSPDecoder::GetInstance()->stopPlay();
+#endif
+}
+
+void HttpServer::stop_video_sessions()
+{
+    if (server_) {
+        // The sessions/sockets are owned by the io_service thread; this can
+        // be called from the wx UI thread (a Preferences checkbox toggle),
+        // so marshal the actual close over instead of touching asio state
+        // cross-thread.
+        boost::asio::post(server_->io_service, [this]() {
+            if (!server_)
+                return;
+            std::vector<std::shared_ptr<session>> video_sessions;
+            for (auto& s : server_->sessions) {
+                if (s->is_video_session())
+                    video_sessions.push_back(s);
+            }
+            for (auto& s : video_sessions) {
+                server_->stop(s);
+            }
+        });
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "[Camera] preview disabled, stopping any active decoder";
+#if defined(__linux__) || defined(__LINUX__)
+    WebRTCDecoder::GetInstance()->stopPlay();
+#endif
 #if ENABLE_FFMPEG
     RTSPDecoder::GetInstance()->stopPlay();
 #endif

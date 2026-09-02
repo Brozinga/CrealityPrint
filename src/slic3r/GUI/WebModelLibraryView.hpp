@@ -47,7 +47,23 @@ public:
     
     // Get webview object
     wxWebView* GetWebView() const { return m_browser; }
-    
+
+    // Force-navigate away from Creality Cloud content already loaded, for
+    // when Offline Mode is turned on while this panel is showing it.
+    // Bypasses load_url() (which already refuses cloud URLs while offline)
+    // since that doesn't touch a page that's already loaded. Also clears
+    // m_current_url so IsInitialized() reports false again, making
+    // MainFrame's tab-switch handler reload the catalog once cloud access
+    // is turned back on.
+    void GoOffline()
+    {
+        if (m_browser) {
+            m_browser->Stop();
+            m_browser->LoadURL("about:blank");
+        }
+        m_current_url.Clear();
+    }
+
     // Event handlers
     void OnNavigating(wxWebViewEvent& evt);
     void OnNavigated(wxWebViewEvent& evt);
