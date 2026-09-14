@@ -48,7 +48,7 @@ void UploadDialog::init_ui(wxWindow* parent)
 
 void UploadDialog::OnTimeout(wxTimerEvent& event)
 {
-        wxMessageBox("Upload timeout", "WARNING", wxOK | wxICON_WARNING, this);
+        wxMessageBox(_L("Upload timeout"), _L("WARNING"), wxOK | wxICON_WARNING, this);
         Destroy();
 }
 
