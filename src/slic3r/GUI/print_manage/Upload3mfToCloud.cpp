@@ -1055,13 +1055,13 @@ void Upload3mfToCloudDialog::send_gcode(bool start_print)
 {
     wxString cur_combo_selection = m_comboBox_printer->GetValue();
     if (cur_combo_selection.IsEmpty()) {
-        wxMessageBox("Please select a printer.", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox(_L("Please select a printer."), _L("Error"), wxOK | wxICON_ERROR);
         return;
     }
 
     wxString ipAddress = extract_ip_address(cur_combo_selection);
     if (ipAddress.IsEmpty()) {
-        wxMessageBox("Invalid printer selection.", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox(_L("Invalid printer selection."), _L("Error"), wxOK | wxICON_ERROR);
         return;
     }
 
