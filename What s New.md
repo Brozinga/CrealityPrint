@@ -70,6 +70,9 @@
 
 ## Part 5
 
+### Build
+- Fixed a packaging bug where `cpack`/NSIS could fail with a CMake string-parsing error ("Invalid character escape") whenever the current Windows user's `%LOCALAPPDATA%` path was embedded unescaped into the generated `CPackConfig.cmake`. The path is now normalized to forward slashes before being used.
+
 ### Version
 - Bumped the application version to **7.2.2.5484**, aligning the minor version with Creality's official upstream release line (the official repo published a **7.2.2.5483** build under its `v7.2.1` GitHub release tag). No upstream source changes were pulled in — the official release added only pre-built binaries to that tag, with no corresponding public commits — so this build carries only this fork's own accumulated changes (localization and packaging fixes from Parts 1-4) under the new version number.
 
