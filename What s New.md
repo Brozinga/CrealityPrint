@@ -60,5 +60,16 @@
 - `libslic3r_version.h` is now regenerated on every CMake configure, so the version shown inside the application always matches `version.inc` (previously it could stay pinned to the first value it was generated with).
 
 ### Version
-- Updated application version to **7.2.2.5480**.
+- Updated application version to **7.2.1.5481**. (Corrects a versioning mistake: this had briefly been mislabeled 7.2.2.5480 on this branch; the patch component stays at 1.)
+
+## Part 4
+
+### Localization (pt_BR)
+- Fixed the on-screen navigation cube: the **TOP / FRONT / BACK / BOTTOM / LEFT / RIGHT** face labels were showing raw English or nonsensical text ("TOP", "FRANTE", "Voltar", "BAÇO") in the Portuguese (Brazil) UI; they now read TOPO / FRENTE / TRÁS / BASE / ESQUERDA / DIREITA.
+- Added pt_BR translations for ~70 strings that were missing entirely (Offline Mode, per-plate grid/visibility toggles, the software-rendering fallback notice, tip-of-the-day hints), so they no longer fall back to English when the app is set to Portuguese.
+- Localized 5 error/warning dialogs (cloud upload flows, WebView dev-tools menu) that were hardcoded in English regardless of the selected language.
+- Rewrote roughly 270 pt_BR strings left over from a stale machine-translation pass that were wrong or nonsensical for a 3D-printing slicer — e.g. "overhang" rendered as "sobreposição"/"balanços" instead of "saliência", "slicing" as "corte" (confusable with the unrelated Cut tool), "bed" as "leito" instead of "mesa", "bug" as "insecto" (the insect), "override" as "sobreviver", "ironing" as "ferrar" (to shoe a horse), and a few strings that had partially translated internal setting keys (e.g. `single_extruder_multi_material`), which would have broken those settings.
+
+### Version
+- Updated application version to **7.2.1.5482**.
 
